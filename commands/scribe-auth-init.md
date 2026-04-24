@@ -6,7 +6,7 @@ Guide the user through the one-time setup to authenticate workspace-mcp against 
 
 Explain, in order -
 
-1. Create a Google Cloud Project at console.cloud.google.com (suggest project name gworkspace-personal or similar)
+1. Create a Google Cloud Project at console.cloud.google.com (suggest project name scribe-personal or similar)
 
 2. Enable the following APIs in the new project - Google Drive API, Google Docs API, Gmail API (optional), Google Calendar API (optional)
 

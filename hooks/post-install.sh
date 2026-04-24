@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# Post-install hook for gworkspace plugin.
+# Optional manual install script for the Scribe plugin.
 #
-# Installs the workspace-mcp Python package (our fork of taylorwilsdon's
-# google_workspace_mcp) from the GitHub fork branch, then prints setup
-# instructions for the user to complete OAuth configuration.
+# The plugin's manifest declares the workspace-mcp server inline via uvx,
+# so Claude Code will auto-install on first MCP tool call. This script
+# is only needed if you want to pre-warm the install (e.g., to avoid a
+# slow first invocation, or on machines without network at first-use time).
+#
+# Installs the workspace-mcp Python package from the fork branch.
 
 set -euo pipefail
 
@@ -17,7 +20,7 @@ FORK_REPO="https://github.com/juliandickie/google_workspace_mcp.git"
 FORK_BRANCH="fork-extension"
 
 echo ""
-echo "=== gworkspace plugin - post-install ==="
+echo "=== Scribe plugin - optional pre-install ==="
 echo ""
 
 if command -v uv >/dev/null 2>&1; then
@@ -29,26 +32,15 @@ else
 fi
 
 echo ""
-echo "workspace-mcp installed."
+echo "workspace-mcp installed. Scribe is ready."
 echo ""
 echo "NEXT STEPS -"
 echo ""
 echo "  1. Set up a Google Cloud Project with OAuth credentials"
 echo "     See the plugin README for a 5-minute walkthrough."
 echo ""
-echo "  2. Run /gws-auth-init in Claude Code for guided OAuth setup."
+echo "  2. Run /scribe-auth-init in Claude Code for guided OAuth setup."
 echo ""
-echo "  3. Once authenticated, the gworkspace skill lets Claude"
+echo "  3. Once authenticated, the scribe skill lets Claude"
 echo "     read and write Google Docs, Drive, and Gmail."
-echo ""
-echo "MCP server registration - the gworkspace-plugin skill teaches Claude"
-echo "how to invoke the workspace-mcp server. If you want the MCP server"
-echo "always-on in Claude Code, add this to your ~/.claude/settings.json -"
-echo ""
-echo '    "mcpServers": {'
-echo '      "gworkspace": {'
-echo '        "command": "uvx",'
-echo '        "args": ["workspace-mcp", "--tools", "docs", "drive", "gmail", "calendar"]'
-echo '      }'
-echo '    }'
 echo ""

@@ -1,14 +1,14 @@
 ---
-name: gworkspace
+name: scribe
 version: 0.1.0
 description: Use when you need to interact with Google Workspace - read or write Google Docs (including document tabs), upload or manage Drive files, search Gmail, or read Calendar events. Triggers on mentions of specific Google Doc URLs, Drive folder IDs, Docs tabs, markdown push to Drive, or any request to update/read Google Workspace content.
 ---
 
-# Google Workspace Automation
+# Scribe - Google Workspace Automation
 
 ## What this skill does
 
-Enables Claude to call the `workspace-mcp` MCP server for Google Workspace operations. The server is installed by this plugin's post-install hook and exposes tools for Docs, Drive, Gmail, Calendar, Sheets, Slides, Forms, and Tasks.
+Enables Claude to call the `workspace-mcp` MCP server for Google Workspace operations. The server is declared inline in this plugin's manifest and is auto-installed via `uvx` on first use. It exposes tools for Docs, Drive, Gmail, Calendar, Sheets, Slides, Forms, and Tasks.
 
 ## When to use
 
@@ -36,7 +36,7 @@ The MCP server uses OAuth 2.0. Before any tool call succeeds, the user must have
 
 3. Authenticated at least one Google account via the OAuth flow
 
-If the user has not completed this setup, direct them to run `/gws-auth-init` before attempting any MCP tool call.
+If the user has not completed this setup, direct them to run `/scribe-auth-init` before attempting any MCP tool call.
 
 ## Account selection
 
@@ -68,15 +68,15 @@ The MCP server supports multiple authenticated accounts. When calling MCP tools,
 
 ## Slash command quick-reference
 
-- `/gws-auth-init` - first-run OAuth setup
+- `/scribe-auth-init` - first-run OAuth setup
 
-- `/gws-auth-add` - add another Google account to the token store
+- `/scribe-auth-add` - add another Google account to the token store
 
-- `/gws-auth-status` - list authenticated accounts
+- `/scribe-auth-status` - list authenticated accounts
 
-- `/gws-push` - push a markdown file to Drive
+- `/scribe-push` - push a markdown file to Drive
 
-- `/gws-client-resolve` - resolve a CLIENT-ID to its account and Drive folder (AHPRA-style repos)
+- `/scribe-client-resolve` - resolve a CLIENT-ID to its account and Drive folder (AHPRA-style repos)
 
 ## Source
 

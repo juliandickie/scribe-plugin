@@ -1,8 +1,8 @@
-# gworkspace
+# Scribe
 
 **Claude Code writes directly to your Google Docs. No more copy-paste dance.**
 
-![gworkspace hero](docs/images/hero.png)
+![Scribe hero](docs/images/hero.png)
 
 ---
 
@@ -10,7 +10,7 @@
 
 You live in Google Docs. Your client reviews happen there. Your team comments happen there. Your finished content ships from there.
 
-But everything you write lives somewhere else first - in markdown, in your editor, in your Claude Code session. Getting it from "written" to "in the right Google Doc with the right formatting in the right tab" is a manual slog -
+But everything you write lives somewhere else first - in markdown, in your editor, in your Claude Code session. Getting it from "written" to "in the right Google Doc with the right formatting in the right tab" is grunt work that eats your production day -
 
 - Copy the file
 
@@ -22,13 +22,13 @@ But everything you write lives somewhere else first - in markdown, in your edito
 
 - Repeat 96 times for a full client push
 
-Half your production day becomes clipboard theatre. Client review slips a week because the docs aren't ready. You automate your markdown pipeline, your CI, your tests - but this one last mile stays stubbornly manual.
+Hours disappear into clipboard theatre. Client review slips a week because the docs aren't ready. You automate your markdown pipeline, your CI, your tests - but this one last mile stays stubbornly manual.
 
 ![Before and after](docs/images/before-after.png)
 
 ## The guide
 
-`gworkspace` is a Claude Code plugin that gives your Claude session direct API-level access to Google Workspace. Once installed, Claude can -
+Scribe is a Claude Code plugin that gives your Claude session direct API-level access to Google Workspace. Once installed, Claude can -
 
 - Read any Google Doc (including tab structure and per-tab content)
 
@@ -38,7 +38,7 @@ Half your production day becomes clipboard theatre. Client review slips a week b
 
 - Search Gmail threads and read Calendar events
 
-It wraps the [`workspace-mcp`](https://github.com/juliandickie/google_workspace_mcp/tree/fork-extension) server - a fork of [taylorwilsdon's google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp) extended with a high-fidelity markdown-to-Google-Docs writer.
+It wraps [`workspace-mcp`](https://github.com/juliandickie/google_workspace_mcp/tree/fork-extension) - a fork of [taylorwilsdon's google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp) extended with a high-fidelity markdown-to-Google-Docs writer.
 
 ## How it works
 
@@ -48,34 +48,34 @@ Three layers, one install -
 
 1. **Your Claude Code session** issues a natural-language request ("update the Blog Article tab in the D01 doc with the latest markdown")
 
-2. **The plugin** matches the request to the right skill and routes the call to its MCP server
+2. **Scribe** matches the request to the right skill and routes the call to its MCP server
 
 3. **The MCP server** handles OAuth, calls Google's Drive + Docs + Gmail + Calendar APIs, and returns the result
 
-You never touch a browser tab. The markdown to Google Doc conversion happens server-side with full fidelity - headings, bold and italic, lists, code blocks, blockquotes, links, all preserved. And because it is Claude writing the commands, you can speak to it naturally - no memorised CLI flags.
+You never touch a browser tab. The markdown-to-Google-Doc conversion happens server-side with full fidelity - headings, bold and italic, lists, code blocks, blockquotes, links, all preserved. And because it is Claude writing the commands, you can speak to it naturally - no memorised CLI flags.
 
 ## The plan - three commands to a working install
 
 ```bash
 # 1. Add this plugin's marketplace
-/plugin marketplace add juliandickie/gworkspace-plugin
+/plugin marketplace add juliandickie/scribe-plugin
 
-# 2. Install the plugin
-/plugin install gworkspace
+# 2. Install Scribe
+/plugin install scribe
 
 # 3. Guided OAuth setup
-/gws-auth-init
+/scribe-auth-init
 ```
 
 First MCP invocation takes a few seconds while `uvx` downloads the server from the fork. Every subsequent call is instant.
 
 ## Google Cloud setup - 5 minutes, one time
 
-Before the plugin can talk to Google, you need your own OAuth client credentials. No shared client IDs - you own your quota, your consent screen, your trust boundary.
+Before Scribe can talk to Google, you need your own OAuth client credentials. No shared client IDs - you own your quota, your consent screen, your trust boundary.
 
 1. Visit [console.cloud.google.com](https://console.cloud.google.com) and sign in with your Google account
 
-2. Create a new project (suggest the name `gworkspace-personal`)
+2. Create a new project (suggest the name `scribe-personal`)
 
 3. Under **APIs & Services > Library**, enable -
 
@@ -91,7 +91,7 @@ Before the plugin can talk to Google, you need your own OAuth client credentials
 
     - User type - External
 
-    - App name - anything (e.g., "gworkspace personal")
+    - App name - anything (e.g., "Scribe personal")
 
     - Support and developer email - your own
 
@@ -99,11 +99,11 @@ Before the plugin can talk to Google, you need your own OAuth client credentials
 
     - Application type - **Desktop app**
 
-    - Name - "gworkspace desktop client"
+    - Name - "Scribe desktop client"
 
 6. Download the JSON. Save to `~/.workspace-mcp/oauth_client.json`.
 
-7. Run `/gws-auth-init` in Claude Code and follow the prompts.
+7. Run `/scribe-auth-init` in Claude Code and follow the prompts.
 
 Your credentials never leave your machine. Tokens are stored encrypted at `~/.workspace-mcp/`.
 
@@ -111,23 +111,23 @@ Your credentials never leave your machine. Tokens are stored encrypted at `~/.wo
 
 | Command | What it does |
 |---|---|
-| `/gws-auth-init` | Guided first-run Google Cloud and OAuth setup |
-| `/gws-auth-add` | Authenticate an additional Google account |
-| `/gws-auth-status` | List authenticated accounts and token validity |
-| `/gws-push` | Push a markdown file to Drive as a new or updated Doc |
-| `/gws-client-resolve` | Resolve a CLIENT-ID (AHPRA-style repos) to account and folder |
+| `/scribe-auth-init` | Guided first-run Google Cloud and OAuth setup |
+| `/scribe-auth-add` | Authenticate an additional Google account |
+| `/scribe-auth-status` | List authenticated accounts and token validity |
+| `/scribe-push` | Push a markdown file to Drive as a new or updated Doc |
+| `/scribe-client-resolve` | Resolve a CLIENT-ID (AHPRA-style repos) to account and folder |
 
 ## Multi-account support
 
-Got a personal Google and a work Google Workspace? Or one per client engagement? The plugin handles multiple authenticated accounts concurrently. Pass `user_google_email` as a parameter to any MCP tool call, set `USER_GOOGLE_EMAIL` in your shell session, or store it in a project's config file. The skill teaches Claude to resolve the right account automatically when it can.
+Got a personal Google and a work Google Workspace? Or one per client engagement? Scribe handles multiple authenticated accounts concurrently. Pass `user_google_email` as a parameter to any MCP tool call, set `USER_GOOGLE_EMAIL` in your shell session, or store it in a project's config file. The skill teaches Claude to resolve the right account automatically when it can.
 
 ## Troubleshooting
 
-**"No cached token"** - run `/gws-auth-init`. You have not completed OAuth consent for any account yet.
+**"No cached token"** - run `/scribe-auth-init`. You have not completed OAuth consent for any account yet.
 
-**"Invalid grant" or "unauthorized"** - OAuth consent may have been revoked at [myaccount.google.com](https://myaccount.google.com/permissions). Re-run `/gws-auth-init` to re-consent.
+**"Invalid grant" or "unauthorized"** - OAuth consent may have been revoked at [myaccount.google.com](https://myaccount.google.com/permissions). Re-run `/scribe-auth-init` to re-consent.
 
-**Token expired** - the MCP server auto-refreshes on next call. If refresh fails (rare), re-authenticate via `/gws-auth-init`.
+**Token expired** - the MCP server auto-refreshes on next call. If refresh fails (rare), re-authenticate via `/scribe-auth-init`.
 
 **API quota exceeded** - Google's default quota is 60 requests per minute per user. Heavy batch operations may need you to request a quota increase on your Cloud Console.
 
@@ -135,7 +135,7 @@ Got a personal Google and a work Google Workspace? Or one per client engagement?
 
 **Want to pre-install instead of waiting for first use** - an optional convenience script is at `hooks/post-install.sh` in the plugin's install directory. Run it manually to eagerly pip-install the server.
 
-## What this enables
+## What Scribe enables
 
 Real examples from production use of the underlying fork -
 
@@ -147,7 +147,7 @@ Real examples from production use of the underlying fork -
 
 ## Source
 
-This plugin wraps the fork at [juliandickie/google_workspace_mcp](https://github.com/juliandickie/google_workspace_mcp) branch `fork-extension`. The fork adds `update_tab_from_markdown` and two bug fixes on top of [taylorwilsdon's google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp) (the original upstream).
+Scribe wraps the fork at [juliandickie/google_workspace_mcp](https://github.com/juliandickie/google_workspace_mcp) branch `fork-extension`. The fork adds `update_tab_from_markdown` and two bug fixes on top of [taylorwilsdon's google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp) (the original upstream).
 
 Issues, PRs, and feature requests to either repo.
 
