@@ -7,6 +7,12 @@
 
 set -euo pipefail
 
+# Idempotency guard - skip if workspace-mcp is already installed
+if command -v workspace-mcp >/dev/null 2>&1; then
+    echo "workspace-mcp already installed. Skipping."
+    exit 0
+fi
+
 FORK_REPO="https://github.com/juliandickie/google_workspace_mcp.git"
 FORK_BRANCH="fork-extension"
 

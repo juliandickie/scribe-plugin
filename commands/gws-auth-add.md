@@ -1,5 +1,4 @@
 ---
-name: gws-auth-add
 description: Authenticate an additional Google account with workspace-mcp so multiple accounts can be used interchangeably.
 ---
 

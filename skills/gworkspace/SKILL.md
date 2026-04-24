@@ -1,5 +1,6 @@
 ---
 name: gworkspace
+version: 0.1.0
 description: Use when you need to interact with Google Workspace - read or write Google Docs (including document tabs), upload or manage Drive files, search Gmail, or read Calendar events. Triggers on mentions of specific Google Doc URLs, Drive folder IDs, Docs tabs, markdown push to Drive, or any request to update/read Google Workspace content.
 ---
 

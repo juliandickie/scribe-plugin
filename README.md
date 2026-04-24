@@ -14,7 +14,13 @@ Two commands in Claude Code -
 
     /plugin install gworkspace
 
-The post-install hook will pip-install `workspace-mcp` from the `fork-extension` branch of the fork repo. If you have `uv` on your PATH it is installed as a uv tool; otherwise the hook falls back to `python3 -m pip install --user`.
+The plugin declares `workspace-mcp` as an inline MCP server in its manifest, so Claude Code auto-installs it via `uvx` on first use. The first MCP invocation may be slow because `uvx` downloads and caches the package from the fork repo's `fork-extension` branch; subsequent invocations are fast.
+
+If you prefer to install the MCP server up front (so the first Claude Code interaction is snappy), you can invoke the optional convenience script manually -
+
+    bash ~/.claude/plugins/gworkspace/hooks/post-install.sh
+
+The script is idempotent - it skips the install if `workspace-mcp` is already on PATH.
 
 ## Google Cloud Project setup
 

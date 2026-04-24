@@ -1,13 +1,9 @@
 ---
-name: gws-client-resolve
 description: Resolve a CLIENT-ID (AHPRA-style repo convention) to its Google account email and Drive folder ID from the client's profile.md frontmatter.
-arguments:
-  - name: client_id
-    description: Client identifier (e.g. HONOUR-HEALTH-01)
-    required: true
+argument-hint: <client-id>
 ---
 
-Read `clients/{client_id}/profile.md` in the current working directory (or the nearest ancestor containing a clients/ folder).
+Read `clients/$1/profile.md` in the current working directory (or the nearest ancestor containing a clients/ folder).
 
 Parse the YAML frontmatter. Report -
 
@@ -17,9 +13,9 @@ Parse the YAML frontmatter. Report -
 
 - google_drive_folder_id field value (if present)
 
-- Content dir path (clients/{client_id}/content/)
+- Content dir path (`clients/$1/content/`)
 
-- Website dir path (clients/{client_id}/website/)
+- Website dir path (`clients/$1/website/`)
 
 If the profile.md is missing the required fields, explain which fields are needed and offer to add them.
 

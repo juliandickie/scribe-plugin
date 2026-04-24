@@ -1,5 +1,4 @@
 ---
-name: gws-auth-status
 description: List all Google accounts authenticated with workspace-mcp and show their token status.
 ---
 

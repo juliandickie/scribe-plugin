@@ -1,5 +1,4 @@
 ---
-name: gws-auth-init
 description: Walk through first-run Google Cloud Project setup and OAuth consent for workspace-mcp.
 ---
 
