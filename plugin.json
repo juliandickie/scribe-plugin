@@ -1,0 +1,19 @@
+{
+  "name": "gworkspace",
+  "version": "0.1.0",
+  "description": "Google Workspace automation for Claude Code - push markdown to Drive, read and update Doc tabs, multi-account OAuth. Wraps juliandickie/google_workspace_mcp.",
+  "author": {
+    "name": "Julian Dickie",
+    "url": "https://github.com/juliandickie"
+  },
+  "homepage": "https://github.com/juliandickie/gworkspace-plugin",
+  "repository": "https://github.com/juliandickie/gworkspace-plugin",
+  "license": "MIT",
+  "keywords": ["google", "workspace", "drive", "docs", "gmail", "mcp", "oauth"],
+  "hooks": {
+    "post-install": "hooks/post-install.sh"
+  },
+  "requires": {
+    "python": ">=3.10"
+  }
+}
