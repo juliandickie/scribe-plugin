@@ -1,10 +1,13 @@
 ---
 description: Authenticate an additional Google account with workspace-mcp so multiple accounts can be used interchangeably.
+disable-model-invocation: true
 ---
+
+# Scribe - Auth Add
 
 Add a new Google account to the workspace-mcp token cache.
 
-Ask the user for the email address to authenticate.
+If the user provided an email address in $ARGUMENTS, use that. Otherwise ask the user for the email address to authenticate.
 
 Then run -
 

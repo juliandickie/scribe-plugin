@@ -1,8 +1,11 @@
 ---
 description: Walk through first-run Google Cloud Project setup and OAuth consent for workspace-mcp.
+disable-model-invocation: true
 ---
 
-Guide the user through the one-time setup to authenticate workspace-mcp against their Google account -
+# Scribe - Auth Init
+
+Guide the user through the one-time setup to authenticate workspace-mcp against their Google account.
 
 Explain, in order -
 

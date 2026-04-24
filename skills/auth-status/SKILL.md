@@ -1,6 +1,9 @@
 ---
 description: List all Google accounts authenticated with workspace-mcp and show their token status.
+disable-model-invocation: true
 ---
+
+# Scribe - Auth Status
 
 List authenticated accounts.
 
@@ -12,4 +15,4 @@ Check `~/.workspace-mcp/cli-tokens/` (the fork's encrypted token store) or the a
 
 - Any tokens that need refresh or re-auth
 
-If no tokens exist, suggest running /scribe-auth-init first.
+If no tokens exist, suggest running /scribe:auth-init first.

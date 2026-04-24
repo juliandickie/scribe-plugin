@@ -1,6 +1,6 @@
 {
   "name": "scribe",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Scribe - Google Workspace automation for Claude Code. Push markdown to Drive, read and update Doc tabs, multi-account OAuth. Wraps juliandickie/google_workspace_mcp.",
   "author": {
     "name": "Julian Dickie",

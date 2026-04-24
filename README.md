@@ -64,7 +64,7 @@ You never touch a browser tab. The markdown-to-Google-Doc conversion happens ser
 /plugin install scribe
 
 # 3. Guided OAuth setup
-/scribe-auth-init
+/scribe:auth-init
 ```
 
 First MCP invocation takes a few seconds while `uvx` downloads the server from the fork. Every subsequent call is instant.
@@ -103,7 +103,7 @@ Before Scribe can talk to Google, you need your own OAuth client credentials. No
 
 6. Download the JSON. Save to `~/.workspace-mcp/oauth_client.json`.
 
-7. Run `/scribe-auth-init` in Claude Code and follow the prompts.
+7. Run `/scribe:auth-init` in Claude Code and follow the prompts.
 
 Your credentials never leave your machine. Tokens are stored encrypted at `~/.workspace-mcp/`.
 
@@ -111,11 +111,11 @@ Your credentials never leave your machine. Tokens are stored encrypted at `~/.wo
 
 | Command | What it does |
 |---|---|
-| `/scribe-auth-init` | Guided first-run Google Cloud and OAuth setup |
-| `/scribe-auth-add` | Authenticate an additional Google account |
-| `/scribe-auth-status` | List authenticated accounts and token validity |
-| `/scribe-push` | Push a markdown file to Drive as a new or updated Doc |
-| `/scribe-client-resolve` | Resolve a CLIENT-ID (AHPRA-style repos) to account and folder |
+| `/scribe:auth-init` | Guided first-run Google Cloud and OAuth setup |
+| `/scribe:auth-add` | Authenticate an additional Google account |
+| `/scribe:auth-status` | List authenticated accounts and token validity |
+| `/scribe:push` | Push a markdown file to Drive as a new or updated Doc |
+| `/scribe:client-resolve` | Resolve a CLIENT-ID (AHPRA-style repos) to account and folder |
 
 ## Multi-account support
 
@@ -123,11 +123,11 @@ Got a personal Google and a work Google Workspace? Or one per client engagement?
 
 ## Troubleshooting
 
-**"No cached token"** - run `/scribe-auth-init`. You have not completed OAuth consent for any account yet.
+**"No cached token"** - run `/scribe:auth-init`. You have not completed OAuth consent for any account yet.
 
-**"Invalid grant" or "unauthorized"** - OAuth consent may have been revoked at [myaccount.google.com](https://myaccount.google.com/permissions). Re-run `/scribe-auth-init` to re-consent.
+**"Invalid grant" or "unauthorized"** - OAuth consent may have been revoked at [myaccount.google.com](https://myaccount.google.com/permissions). Re-run `/scribe:auth-init` to re-consent.
 
-**Token expired** - the MCP server auto-refreshes on next call. If refresh fails (rare), re-authenticate via `/scribe-auth-init`.
+**Token expired** - the MCP server auto-refreshes on next call. If refresh fails (rare), re-authenticate via `/scribe:auth-init`.
 
 **API quota exceeded** - Google's default quota is 60 requests per minute per user. Heavy batch operations may need you to request a quota increase on your Cloud Console.
 
