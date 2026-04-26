@@ -17,7 +17,8 @@
       },
       "homepage": "https://github.com/juliandickie/scribe-plugin",
       "license": "MIT",
-      "keywords": ["google", "workspace", "drive", "docs", "gmail", "mcp", "oauth", "scribe"]
+      "keywords": ["google", "workspace", "drive", "docs", "gmail", "mcp", "oauth", "scribe"],
+      "icon": "docs/images/icon.png"
     }
   ]
 }
