@@ -9,7 +9,7 @@
     {
       "name": "scribe",
       "description": "Google Workspace automation skills for Claude Code. Bundles a markdown-to-Google-Docs writer (via the workspace-mcp fork) with skills for OAuth setup, multi-account switching, and direct push of markdown into Drive folders or specific Doc tabs.",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "source": "./",
       "author": {
         "name": "Julian Dickie",
