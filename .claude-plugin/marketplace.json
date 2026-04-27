@@ -9,7 +9,7 @@
     {
       "name": "scribe",
       "description": "Google Workspace automation skills for Claude Code. Bundles a markdown-to-Google-Docs writer (via the workspace-mcp fork) with skills for OAuth setup, multi-account switching, and direct push of markdown into Drive folders or specific Doc tabs.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "source": "./",
       "author": {
         "name": "Julian Dickie",
@@ -17,7 +17,16 @@
       },
       "homepage": "https://github.com/juliandickie/scribe-plugin",
       "license": "MIT",
-      "keywords": ["google", "workspace", "drive", "docs", "gmail", "mcp", "oauth", "scribe"],
+      "keywords": [
+        "google",
+        "workspace",
+        "drive",
+        "docs",
+        "gmail",
+        "mcp",
+        "oauth",
+        "scribe"
+      ],
       "icon": "docs/images/icon.png"
     }
   ]

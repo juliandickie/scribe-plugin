@@ -117,13 +117,55 @@ Your credentials never leave your machine. Tokens are stored encrypted at `~/.wo
 | `/scribe:push` | Push a markdown file to Drive as a new or updated Doc |
 | `/scribe:client-resolve` | Resolve a CLIENT-ID (AHPRA-style repos) to account and folder |
 
+## File-path sandbox - read this before your first push
+
+The MCP server enforces a directory sandbox via `ALLOWED_FILE_DIRS`. The plugin's manifest defaults this to `~/.workspace-mcp/attachments`. **Files outside that directory cannot be uploaded via `import_to_google_doc`.**
+
+Two ways to handle this -
+
+- **Per-session copy** (simple). For ad-hoc pushes, copy the source file into `~/.workspace-mcp/attachments/scribe-session/` first. The `/scribe:push` skill walks Claude through this automatically.
+
+- **Persistent override** (for projects with stable source directories). Set `ALLOWED_FILE_DIRS` in `~/.claude/settings.json` to additionally include your project root -
+
+   ```json
+   "mcpServers": {
+     "scribe": {
+       "env": {
+         "ALLOWED_FILE_DIRS": "${HOME}/.workspace-mcp/attachments:${HOME}/code/my-project"
+       }
+     }
+   }
+   ```
+
+   Multiple paths colon-separated on macOS/Linux, semicolon-separated on Windows.
+
+**Important** - symlinks do NOT bypass the sandbox. The server resolves symlinks via `realpath()` before the check. Either copy the file or extend `ALLOWED_FILE_DIRS`.
+
 ## Multi-account support
 
-Got a personal Google and a work Google Workspace? Or one per client engagement? Scribe handles multiple authenticated accounts concurrently. Pass `user_google_email` as a parameter to any MCP tool call, set `USER_GOOGLE_EMAIL` in your shell session, or store it in a project's config file. The skill teaches Claude to resolve the right account automatically when it can.
+Scribe handles multiple authenticated accounts concurrently when they all sit inside the SAME Google Workspace organisation (or all use personal Gmail). Pass `user_google_email` as a parameter to any MCP tool call, set `USER_GOOGLE_EMAIL` in your shell session, or store it in a project's config file.
+
+### Multi-org / cross-Workspace setup (different story)
+
+If you have accounts across **separate Google Workspace organisations** (e.g. one for your agency, one for an institute or client engagement), the OAuth client model gets in the way. Each org's Internal-type OAuth client only accepts identities from the OWNING Workspace, so you need ONE OAuth client per org.
+
+The plugin supports this via a symlink-swap pattern. See [docs/multi-org-setup.md](docs/multi-org-setup.md) for the step-by-step setup, including a ready-to-use `switch.sh` helper. Summary -
+
+1. Create a separate Google Cloud project + OAuth client inside EACH Workspace org
+
+2. Save each `client_secret_*.json` to `~/.workspace-mcp/`
+
+3. Symlink the active one to `~/.workspace-mcp/oauth_client.json`
+
+4. Use `switch.sh <org>` to flip the symlink when changing context
+
+Token caches are per-account, so authenticating once per org means you can push to either org's Drive without re-consenting.
 
 ## Troubleshooting
 
-**"No cached token"** - run `/scribe:auth-init`. You have not completed OAuth consent for any account yet.
+**"OAuth client credentials not found" (during auth flow)** - your `oauth_client.json` is not at `~/.workspace-mcp/oauth_client.json`. Run `/scribe:auth-init` to set it up correctly. Don't trust the error message's path suggestion (it points at a uv cache directory that gets blown away on plugin updates).
+
+**"No cached token"** - run `/scribe:auth-init` (if first install) or `/scribe:auth-add EMAIL` (if you've authenticated some accounts but not the one this call needs).
 
 **"Invalid grant" or "unauthorized"** - OAuth consent may have been revoked at [myaccount.google.com](https://myaccount.google.com/permissions). Re-run `/scribe:auth-init` to re-consent.
 
@@ -134,6 +176,12 @@ Got a personal Google and a work Google Workspace? Or one per client engagement?
 **First install is slow** - the `mcpServers` declaration in `plugin.json` uses `uvx` to pull the server from GitHub on first invocation. Subsequent calls use the cached install and are near-instant.
 
 **Want to pre-install instead of waiting for first use** - an optional convenience script is at `hooks/post-install.sh` in the plugin's install directory. Run it manually to eagerly pip-install the server.
+
+**"Path is outside permitted directories" when pushing a file** - your source file is outside the sandbox. See "File-path sandbox" section above. Symlinks don't bypass it.
+
+**`HttpError 500` from Drive on a single file in a batch** - Google's Drive upload endpoint occasionally returns a transient 500. Re-run the failed file - the second attempt almost always succeeds. Auto-retry is on the upstream fork's roadmap.
+
+**Slash command not found** - the auth skills (`/scribe:auth-init`, `/scribe:auth-add`, `/scribe:auth-status`, `/scribe:client-resolve`) are user-invokable only - they have `disable-model-invocation: true` in their frontmatter so Claude won't auto-trigger them. Type the slash command yourself; if it doesn't appear, run `/plugin install scribe` to confirm the plugin is loaded.
 
 ## What Scribe enables
 
