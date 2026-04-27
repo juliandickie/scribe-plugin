@@ -195,9 +195,9 @@ Real examples from production use of the underlying fork -
 
 ## Source
 
-Scribe wraps the fork at [juliandickie/google_workspace_mcp](https://github.com/juliandickie/google_workspace_mcp) branch `fork-extension`. The fork adds `update_tab_from_markdown` and two bug fixes on top of [taylorwilsdon's google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp) (the original upstream).
+Scribe wraps [taylorwilsdon/google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp), pulled via uvx from a tracked fork branch. The markdown-writer capability that powers `manage_doc_tab populate_from_markdown` was contributed via [PR #727](https://github.com/taylorwilsdon/google_workspace_mcp/pull/727) (merged 2026-04-26) - merged with a bonus refactor by Taylor that consolidated four tab tools into the single action-based `manage_doc_tab` you see today.
 
-Issues, PRs, and feature requests to either repo.
+Issues, PRs, and feature requests for the underlying MCP server to [taylorwilsdon's repo](https://github.com/taylorwilsdon/google_workspace_mcp). Issues specific to this plugin (skills, slash commands, install flow) to [this repo](https://github.com/juliandickie/scribe-plugin).
 
 ## License
 

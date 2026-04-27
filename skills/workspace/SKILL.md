@@ -44,25 +44,25 @@ The MCP server supports multiple authenticated accounts. When calling MCP tools,
 
 **Push a local markdown file to Drive as a new Google Doc** -
 
-1. Call drive_upload_file with the markdown file content and folder_id
-
-2. Call drive_convert_to_doc to convert the uploaded markdown to a Google Doc
+1. Call import_to_google_doc with `file_path` (NOT `content` - file_path works for any text format and avoids loading the whole file into the calling agent's context). Pass `source_format: "md"` and `parent_folder_id` if specified.
 
 **Update a specific tab in an existing Google Doc** -
 
-1. Call list_doc_tabs to enumerate the doc's tabs
+1. Call inspect_doc_structure to enumerate the doc's tabs and find the target tab_id by title
 
-2. Identify the target tab_id by title
-
-3. Call update_tab_from_markdown with document_id, tab_id, markdown_text, replace_existing=True
+2. Call manage_doc_tab with `action: "populate_from_markdown"`, document_id, tab_id, markdown_text, and replace_existing=True
 
 **Create a new tab and populate it** -
 
-1. Call insert_doc_tab with document_id, title, index
+1. Call manage_doc_tab with `action: "create"`, document_id, title, index. The response contains the new tab_id.
 
-2. Parse the returned tab_id from the confirmation string
+2. Call manage_doc_tab again with `action: "populate_from_markdown"`, the new tab_id, and the markdown content.
 
-3. Call update_tab_from_markdown with the new tab_id
+**Rename or delete a tab** -
+
+- Rename - manage_doc_tab with `action: "rename"`, tab_id, and new title
+
+- Delete - manage_doc_tab with `action: "delete"` and tab_id
 
 ## User-invoked skill quick-reference
 

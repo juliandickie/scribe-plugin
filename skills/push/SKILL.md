@@ -62,9 +62,9 @@ Important behaviour -
 
 Once the file is in an allowed location -
 
-- If `--tab-id` is present - call `update_tab_from_markdown` with `document_id`, `tab_id`, the file content, and `replace_existing=true`
+- If `--tab-id` is present - call `manage_doc_tab` with `action: "populate_from_markdown"`, `document_id`, `tab_id`, the markdown content, and `replace_existing: true`
 
-- If `--doc-id` is present but no `--tab-id` - fetch the doc's primary tab and update that via `update_tab_from_markdown`
+- If `--doc-id` is present but no `--tab-id` - call `inspect_doc_structure` to find the primary tab_id, then call `manage_doc_tab` with `action: "populate_from_markdown"` against that tab
 
 - If neither `--doc-id` nor `--tab-id` - call `import_to_google_doc` with `file_path` parameter (NOT `content`) pointing at the file. Pass `source_format: "md"` and `parent_folder_id: <--folder>` if specified. Using `file_path` instead of `content` avoids loading large files into the calling agent's context window.
 
