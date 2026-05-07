@@ -1,7 +1,7 @@
 {
   "name": "scribe",
-  "version": "0.2.2",
-  "description": "Scribe - Google Workspace automation for Claude Code. Push markdown to Drive, read and update Doc tabs, multi-account OAuth. Wraps juliandickie/google_workspace_mcp.",
+  "version": "0.3.0",
+  "description": "Scribe - Google Workspace automation for Claude Code. Push markdown to Drive, read and update Doc tabs, multi-account OAuth. Wraps taylorwilsdon/google_workspace_mcp.",
   "author": {
     "name": "Julian Dickie",
     "url": "https://github.com/juliandickie"
@@ -24,9 +24,7 @@
     "scribe": {
       "command": "uvx",
       "args": [
-        "--from",
-        "git+https://github.com/juliandickie/google_workspace_mcp.git@fork-extension",
-        "workspace-mcp",
+        "workspace-mcp@1.20.4",
         "--tools",
         "drive",
         "docs",

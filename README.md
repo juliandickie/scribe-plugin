@@ -38,7 +38,7 @@ Scribe is a Claude Code plugin that gives your Claude session direct API-level a
 
 - Search Gmail threads and read Calendar events
 
-It wraps [`workspace-mcp`](https://github.com/juliandickie/google_workspace_mcp/tree/fork-extension) - a fork of [taylorwilsdon's google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp) extended with a high-fidelity markdown-to-Google-Docs writer.
+It wraps [taylorwilsdon's `workspace-mcp`](https://github.com/taylorwilsdon/google_workspace_mcp) (PyPI), which now ships with the markdown-to-Google-Docs writer Scribe contributed via PR #727.
 
 ## How it works
 

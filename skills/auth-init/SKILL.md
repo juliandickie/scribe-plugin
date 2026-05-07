@@ -67,7 +67,7 @@ If the user prefers a different path, they can set `GOOGLE_CLIENT_SECRET_PATH` i
 ## 6. Run the OAuth consent flow for the primary account
 
 ```bash
-USER_GOOGLE_EMAIL=your-email@domain.com uvx --from git+https://github.com/juliandickie/google_workspace_mcp.git@fork-extension workspace-mcp --single-user --tools drive docs
+USER_GOOGLE_EMAIL=your-email@domain.com uvx workspace-mcp@1.20.4 --single-user --tools drive docs
 ```
 
 A browser opens. Click "Allow." The token is cached at `~/.workspace-mcp/credentials/<email>.json` and the server exits or remains running depending on the user's setup.

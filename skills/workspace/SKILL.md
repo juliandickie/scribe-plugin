@@ -80,4 +80,4 @@ Each of these is a slash-invokable skill in this plugin -
 
 ## Source
 
-This skill wraps the `workspace-mcp` Python package. The extension supporting markdown-to-Docs conversion lives at `juliandickie/google_workspace_mcp` branch `fork-extension`. Bug reports and PRs to that repo.
+This skill wraps the `workspace-mcp` Python package on PyPI, maintained by [taylorwilsdon](https://github.com/taylorwilsdon/google_workspace_mcp). The markdown-to-Docs writer that powers `manage_doc_tab populate_from_markdown` was contributed via PR #727 (merged April 2026). Bug reports about MCP server behaviour go upstream; bug reports about the Scribe plugin (skills, slash commands, install flow) go to https://github.com/juliandickie/scribe-plugin.

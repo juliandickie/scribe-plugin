@@ -26,7 +26,7 @@ Do NOT proceed past this point if the credentials file is missing.
 If the user provided an email address in $ARGUMENTS, use that. Otherwise ask the user which email to authenticate.
 
 ```bash
-USER_GOOGLE_EMAIL=<email> uvx --from git+https://github.com/juliandickie/google_workspace_mcp.git@fork-extension workspace-mcp --single-user --tools drive docs
+USER_GOOGLE_EMAIL=<email> uvx workspace-mcp@1.20.4 --single-user --tools drive docs
 ```
 
 A browser opens for consent. Once complete, the account's refresh token is cached at `~/.workspace-mcp/credentials/<email>.json` alongside any other authenticated accounts. Subsequent MCP tool calls can target this account by passing its email as the `user_google_email` parameter.

@@ -6,9 +6,11 @@
 # is only needed if you want to pre-warm the install (e.g., to avoid a
 # slow first invocation, or on machines without network at first-use time).
 #
-# Installs the workspace-mcp Python package from the fork branch.
+# Installs the workspace-mcp Python package from PyPI.
 
 set -euo pipefail
+
+WORKSPACE_MCP_VERSION="1.20.4"
 
 # Idempotency guard - skip if workspace-mcp is already installed
 if command -v workspace-mcp >/dev/null 2>&1; then
@@ -16,19 +18,16 @@ if command -v workspace-mcp >/dev/null 2>&1; then
     exit 0
 fi
 
-FORK_REPO="https://github.com/juliandickie/google_workspace_mcp.git"
-FORK_BRANCH="fork-extension"
-
 echo ""
 echo "=== Scribe plugin - optional pre-install ==="
 echo ""
 
 if command -v uv >/dev/null 2>&1; then
-    echo "Installing workspace-mcp via uv tool..."
-    uv tool install --from "git+${FORK_REPO}@${FORK_BRANCH}" workspace-mcp
+    echo "Installing workspace-mcp==${WORKSPACE_MCP_VERSION} via uv tool..."
+    uv tool install "workspace-mcp==${WORKSPACE_MCP_VERSION}"
 else
     echo "uv not found - falling back to pip"
-    python3 -m pip install --user "git+${FORK_REPO}@${FORK_BRANCH}"
+    python3 -m pip install --user "workspace-mcp==${WORKSPACE_MCP_VERSION}"
 fi
 
 echo ""

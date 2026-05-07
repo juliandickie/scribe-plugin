@@ -119,10 +119,10 @@ For EACH org's primary email -
 
 ```bash
 ~/.workspace-mcp/switch.sh org-a
-USER_GOOGLE_EMAIL=you@org-a.com uvx --from git+https://github.com/juliandickie/google_workspace_mcp.git@fork-extension workspace-mcp --single-user --tools drive docs
+USER_GOOGLE_EMAIL=you@org-a.com uvx workspace-mcp@1.20.4 --single-user --tools drive docs
 
 ~/.workspace-mcp/switch.sh org-b
-USER_GOOGLE_EMAIL=you@org-b.com uvx --from git+https://github.com/juliandickie/google_workspace_mcp.git@fork-extension workspace-mcp --single-user --tools drive docs
+USER_GOOGLE_EMAIL=you@org-b.com uvx workspace-mcp@1.20.4 --single-user --tools drive docs
 ```
 
 Each consent flow stores a refresh token at `~/.workspace-mcp/credentials/<email>.json`. Tokens are SELF-CONTAINED - they don't depend on which `oauth_client.json` is active when they're used. Once you've authenticated both orgs, you can flip the symlink whenever and pre-existing tokens still work for read/write.
