@@ -1,7 +1,7 @@
 # Scribe plugin maintenance targets.
 # Run `make help` to see what's available.
 
-.PHONY: help validate publish icons clean release-notes
+.PHONY: help validate publish icons clean release-notes orient
 
 # Override on the command line, e.g. make publish VERSION=0.2.1
 VERSION ?=
@@ -68,6 +68,27 @@ release-notes: ## Print recent commits since the last tag (helps draft notes)
 	@LAST_TAG=$$(git describe --tags --abbrev=0 2>/dev/null) && \
 		echo "Commits since $$LAST_TAG -" && \
 		git log $$LAST_TAG..HEAD --oneline
+
+orient: ## One-shot snapshot for new sessions - state, recent work, releases, version match, open issues
+	@echo "=== Validation ==="
+	@$(MAKE) --no-print-directory validate
+	@echo ""
+	@echo "=== Recent local commits ==="
+	@git log --oneline -10
+	@echo ""
+	@echo "=== Published GitHub releases (latest 5) ==="
+	@gh release list --repo juliandickie/scribe-plugin --limit 5 2>/dev/null || echo "  (gh CLI unavailable or not authenticated)"
+	@echo ""
+	@echo "=== Local manifest versions vs latest tag ==="
+	@echo "  plugin.json:      $$(jq -r .version .claude-plugin/plugin.json 2>/dev/null || echo '?')"
+	@echo "  marketplace.json: $$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json 2>/dev/null || echo '?')"
+	@echo "  latest git tag:   $$(git describe --tags --abbrev=0 2>/dev/null || echo 'no tags')"
+	@echo ""
+	@echo "=== Open issues on this repo ==="
+	@gh issue list --repo juliandickie/scribe-plugin 2>/dev/null || echo "  (gh CLI unavailable)"
+	@echo ""
+	@echo "=== Open upstream design discussion (#771) ==="
+	@gh issue view 771 --repo taylorwilsdon/google_workspace_mcp --json title,state --jq '"  " + .state + " - " + .title' 2>/dev/null || echo "  (unable to fetch upstream issue 771)"
 
 clean: ## Remove generated artifacts (no-op for now)
 	@echo "Nothing to clean"

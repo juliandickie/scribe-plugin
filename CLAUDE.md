@@ -248,9 +248,8 @@ If you're an AI agent picking this up cold -
 1. Read this file first (you're here).
 2. Skim `README.md` to understand the user-facing pitch.
 3. Skim the six SKILL.md files to understand the runtime behavior.
-4. Run `make validate` to confirm the repo is in a clean state.
-5. Run `git log --oneline -10` to see recent work.
-6. Check `gh issue list --repo juliandickie/scribe-plugin` for any reported friction.
-7. Check `gh issue view 771 --repo taylorwilsdon/google_workspace_mcp` for the open upstream design discussion.
+4. Run `make orient` for a one-shot snapshot - validates manifests, shows recent local commits, lists published GitHub releases, confirms local plugin.json version matches the latest tag, lists open issues on this repo, and shows the state of the open upstream design discussion (taylorwilsdon issue #771).
 
 If the user asks for a change, identify which layer it belongs to (plugin, upstream MCP, or AHPRA scripts) before writing code. The "Architecture" section above maps the territory.
+
+**Important** - the GitHub release tag is the source of truth for what's actually shipped, not local `git log`. A release tag can sit on any commit. For example, v0.3.0 was tagged directly on the substantive PyPI-switch commit `906f5180`, not on a separate "Release v0.3.0" version-bump commit. So local `git log --oneline` alone can mislead you into thinking the latest release is older than it is. `make orient` cross-checks the latest published tag against `plugin.json` for you. If those diverge, find out why before assuming the working tree is shippable or that a "Release vX.Y.Z" commit is missing.
