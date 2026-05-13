@@ -7,9 +7,32 @@ disable-model-invocation: true
 
 Guide the user through the one-time setup to authenticate workspace-mcp against their Google account.
 
-This skill is the prerequisite for `/scribe:auth-add` and `/scribe:push`. The plugin's manifest already points the MCP server at `~/.workspace-mcp/oauth_client.json` for OAuth client credentials, so the setup below ends at "save your downloaded credentials JSON to that exact path."
+This skill is the prerequisite for `/scribe:auth-add` and `/scribe:push`. After completing this skill, Claude Code can read and write Google Drive, Docs, Gmail, and Calendar on behalf of the authenticated account.
 
-Explain, in order -
+## Prerequisites - Install uvx
+
+This skill requires `uvx` (the `uv` Python tool runner). Verify it is installed before proceeding:
+
+```bash
+uvx --version
+```
+
+If the command is not found, install `uv` now - then restart your terminal before continuing.
+
+**macOS / Linux:**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Windows (PowerShell):**
+```powershell
+irm https://astral.sh/uv/install.ps1 | iex
+```
+
+**Windows note:** If the installer reports an execution policy error, run this first, then retry the installer:
+```powershell
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+```
 
 ## 1. Create a Google Cloud Project
 
@@ -25,9 +48,9 @@ Under **APIs & Services > Library**, enable -
 
 - **Google Docs API** (mandatory)
 
-- **Gmail API** (optional, only if user wants Gmail access)
+- **Gmail API** (optional, only if the user wants Gmail access)
 
-- **Google Calendar API** (optional, only if user wants Calendar access)
+- **Google Calendar API** (optional, only if the user wants Calendar access)
 
 ## 3. Configure the OAuth consent screen
 
@@ -51,34 +74,54 @@ Under **APIs & Services > Credentials** -
 
 - Name - "Scribe desktop client" or similar.
 
-- Click Create, then download the JSON.
+- Click Create, then download the JSON file.
 
 ## 5. Save the credentials at the canonical path
 
-Critical - the plugin's manifest points the MCP server at `~/.workspace-mcp/oauth_client.json`. The downloaded JSON MUST be saved at exactly that path (not the default Downloads filename Google gives it).
+The plugin's manifest points the MCP server at `~/.workspace-mcp/oauth_client.json`. The downloaded JSON MUST be saved at exactly that path (not the default filename Google assigns it).
 
+**macOS / Linux:**
 ```bash
 mkdir -p ~/.workspace-mcp
 mv ~/Downloads/client_secret_*.apps.googleusercontent.com.json ~/.workspace-mcp/oauth_client.json
 ```
 
-If the user prefers a different path, they can set `GOOGLE_CLIENT_SECRET_PATH` in their `~/.claude/settings.json` MCP config to override the manifest default - but the canonical path works without any config edits.
-
-## 6. Run the OAuth consent flow for the primary account
-
-```bash
-USER_GOOGLE_EMAIL=your-email@domain.com uvx workspace-mcp@1.20.4 --single-user --tools drive docs
+**Windows (PowerShell):**
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.workspace-mcp"
+$src = Get-ChildItem "$env:USERPROFILE\Downloads\client_secret_*.json" | Select-Object -First 1
+Copy-Item $src.FullName "$env:USERPROFILE\.workspace-mcp\oauth_client.json"
 ```
 
-A browser opens. Click "Allow." The token is cached at `~/.workspace-mcp/credentials/<email>.json` and the server exits or remains running depending on the user's setup.
+If the user prefers a different path, they can set `GOOGLE_CLIENT_SECRET_PATH` in their `~/.claude/settings.json` MCP env config to override the manifest default - but the canonical path works without any config edits.
 
-After this step, the MCP server invocations from Claude Code work without further OAuth prompts (token auto-refreshes).
+## 6. Authenticate via Claude Code
+
+The workspace-mcp server is already running in the background (Claude Code starts it automatically via the plugin manifest). There is no need to run it manually.
+
+Ask the user which Google email address they want to authenticate. Then call the `start_google_auth` MCP tool:
+
+- `user_google_email` - the email the user provided
+
+- `service_name` - use `"drive"` (this also covers Docs scope; calling once is sufficient for both Drive and Docs access)
+
+The tool returns a Google authorization URL. Present it to the user as a clickable link and instruct them to -
+
+1. Click the link - it opens a Google consent screen in their browser.
+
+2. Sign in if prompted, then click **Allow** to grant the requested permissions.
+
+3. Wait for the browser to show a success or redirect page before closing it.
+
+The token is then written automatically to `~/.workspace-mcp/credentials/<email>.json`. The server uses it from this point forward without further prompts (the token auto-refreshes).
+
+**Important:** Complete the browser consent before the auth session expires (usually a few minutes). If the authorization URL has expired before the user clicks Allow, call `start_google_auth` again to get a fresh URL.
 
 ## What happens after this skill
 
-Once the user has saved their credentials and authenticated their first account, they can -
+Once the user has authenticated their first account -
 
-- Run `/scribe:auth-add EMAIL` to authenticate additional accounts (each launches a fresh browser consent for that email)
+- Run `/scribe:auth-add EMAIL` to authenticate additional accounts
 
 - Run `/scribe:push FILE` to upload markdown to Drive
 
@@ -90,10 +133,18 @@ If the user has multiple Google Workspace orgs (e.g. one for agency, one for ins
 
 ## Troubleshooting
 
-- "OAuth client credentials not found" - the credentials JSON is not at `~/.workspace-mcp/oauth_client.json`. Move/rename it.
+- "OAuth client credentials not found" - the credentials JSON is not at `~/.workspace-mcp/oauth_client.json`. Move or rename it and try again.
 
-- "Scope not authorized" - the user accepted a narrower set of scopes than the server requests. Re-run the consent flow and accept all requested scopes.
+- "Scope not authorized" - the user accepted a narrower set of scopes than the server requests. Call `start_google_auth` again and accept all requested scopes on the consent screen.
 
-- "Access blocked: This app's request is invalid" - usually means the OAuth consent screen wasn't fully configured (missing app name or test users for External). Go back to step 3.
+- "Access blocked: This app's request is invalid" - usually means the OAuth consent screen was not fully configured (missing app name or, for External apps, the authenticating account is not listed as a test user). Go back to Step 3.
+
+- "Missing required argument: service_name" - the `start_google_auth` tool requires both `user_google_email` and `service_name`. Valid values for `service_name` are `drive`, `docs`, `gmail`, `calendar`. Use `drive` for the initial setup.
+
+- **Windows - credentials or client file not found after setup:** The plugin uses `${HOME}` to locate files. On some Windows systems `HOME` is not set as a standard environment variable. If credential or client-file path errors persist after placing the JSON correctly, add these overrides to your project `.claude/settings.json` under `mcpServers.scribe.env`, replacing `C:\Users\YourName` with your actual home directory path:
+  ```json
+  "GOOGLE_CLIENT_SECRET_PATH": "C:\\Users\\YourName\\.workspace-mcp\\oauth_client.json",
+  "WORKSPACE_MCP_CREDENTIALS_DIR": "C:\\Users\\YourName\\.workspace-mcp\\credentials"
+  ```
 
 If the user hits any other friction, walk them through it. Refer them to the plugin README for screenshots and the multi-org appendix.
