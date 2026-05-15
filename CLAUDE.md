@@ -26,7 +26,7 @@ The plugin's distinctive value is the integration polish, not the underlying MCP
 
 ## Architecture - where this fits in the broader ecosystem
 
-Three repositories work together. This is one of them.
+Two repositories. This plugin and the upstream MCP server it wraps.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -41,20 +41,14 @@ Three repositories work together. This is one of them.
                                       │
 ┌─────────────────────────────────────┴────────────────────────────────┐
 │ juliandickie/scribe-plugin (THIS REPO)                                │
-│ Claude Code plugin - 6 skills + manifest + hooks + docs.              │
+│ Claude Code plugin - 30 skills + manifest + hooks + docs.             │
 │ Distributed via the official Claude Code plugin marketplace flow.     │
-└──────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────┐
-│ juliandickie/google_workspace_mcp (OUR FORK, historical)              │
-│ Was the staging ground for PR #727. Now mostly retired.               │
-│ main is in sync with upstream main. fork-extension branch is the      │
-│ historical record of the contribution but no live consumer pulls      │
-│ from it anymore. Could be archived; not urgent.                       │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-A FOURTH repo - `juliandickie/Documents/GitHub/ahpra-writing-research-cc` - consumes this work via Python library imports against the fork's local checkout (`scripts/gdocs/push_phase_f.py` etc.). Changes to the Scribe plugin do NOT directly affect that repo's batch scripts; it has its own pin.
+**Historical note.** A third repository, `juliandickie/google_workspace_mcp`, was a fork of taylorwilsdon's repo that staged PR #727 before merge. It is fully retired - no consumer pulls from it, the install path is PyPI, and it can be archived on GitHub at any time. Future contributions to upstream should be made by forking taylorwilsdon's repo directly for a single focused PR (the v1.0 path is the model), not by reactivating the old fork.
+
+A separate downstream consumer - `juliandickie/Documents/GitHub/ahpra-writing-research-cc` - uses workspace functionality via its own scripts. That repo has its own upstream pin and is unaffected by Scribe plugin changes; treat it as out-of-scope here.
 
 ## Repo structure
 
@@ -63,21 +57,53 @@ scribe-plugin/
 ├── .claude-plugin/
 │   ├── plugin.json              # MCP server declaration + manifest
 │   └── marketplace.json         # registry entry for /plugin marketplace add
-├── skills/
-│   ├── workspace/SKILL.md       # AUTO-activated; teaches Claude Workspace context
-│   ├── auth-init/SKILL.md       # USER-invoked (disable-model-invocation: true)
-│   ├── auth-add/SKILL.md        # USER-invoked
-│   ├── auth-status/SKILL.md     # USER-invoked
+├── skills/                      # 30 skills total (three layers)
+│   # Layer 1 - Orchestration (auto-activated)
+│   ├── workspace/SKILL.md       # Routing brain; multi-account, chaining patterns
+│   # Layer 2 - Service skills (auto-activated, narrow descriptions)
+│   ├── gmail/SKILL.md           # Gmail API operations
+│   ├── calendar/SKILL.md        # Calendar API operations
+│   ├── docs/SKILL.md            # Google Docs operations
+│   ├── drive/SKILL.md           # Drive operations
+│   ├── sheets/SKILL.md          # Sheets operations
+│   ├── slides/SKILL.md          # Slides operations
+│   ├── contacts/SKILL.md        # People API
+│   ├── tasks/SKILL.md           # Google Tasks
+│   ├── forms/SKILL.md           # Google Forms
+│   ├── chat/SKILL.md            # Google Chat
+│   # Layer 3 - Workflow skills (user-invoked via slash command)
+│   ├── daily-briefing/SKILL.md
+│   ├── inbox-triage/SKILL.md
+│   ├── support-scan/SKILL.md
+│   ├── meeting-prep/SKILL.md
+│   ├── thread-to-doc/SKILL.md
+│   ├── client-digest/SKILL.md
+│   ├── weekly-wrap/SKILL.md
+│   ├── follow-up-tracker/SKILL.md
+│   ├── contact-onboard/SKILL.md
+│   ├── doc-chase/SKILL.md
+│   ├── attach-vault/SKILL.md
+│   ├── event-recap/SKILL.md
+│   ├── smart-reply/SKILL.md
+│   ├── educator-setup/SKILL.md
+│   # Infra skills (user-invoked)
+│   ├── auth-init/SKILL.md       # First-run OAuth setup
+│   ├── auth-add/SKILL.md        # Add another account
+│   ├── auth-status/SKILL.md     # List authenticated accounts
 │   ├── push/SKILL.md            # BOTH user-invoked AND auto-activated
-│   └── client-resolve/SKILL.md  # USER-invoked (AHPRA-specific repo convention)
+│   └── client-resolve/SKILL.md  # AHPRA-specific repo convention
 ├── hooks/
 │   └── post-install.sh          # Optional manual pre-install of workspace-mcp
 ├── scripts/
 │   └── switch.sh                # Multi-org OAuth client symlink switcher
 ├── docs/
-│   ├── multi-org-setup.md       # Detailed cross-Workspace setup
+│   ├── multi-org-setup.md       # Cross-Workspace OAuth client setup
+│   ├── workflows.md             # Full reference for the 14 workflow skills
+│   ├── services.md              # Full reference for the 10 service skills
+│   ├── skill-templates/         # Templates for authoring new service/workflow skills
+│   ├── superpowers/             # Specs and plans for major changes
 │   └── images/                  # Hero/architecture/before-after/icon assets
-├── Makefile                     # help/validate/publish/icons targets
+├── Makefile                     # help/validate/check-upstream/publish/icons targets
 ├── README.md                    # User-facing overview
 ├── CLAUDE.md                    # This file - dev context
 ├── LICENSE                      # MIT
@@ -220,7 +246,7 @@ If a future user surfaces friction worth fixing -
 
 1. Plugin-level fixes (skill prose, manifest, docs, install flow) - patch this repo, cut a Scribe patch release. Examples - v0.2.1 added precondition checks and sandbox docs without touching upstream.
 
-2. MCP-server-level fixes (tool behaviour, scope handling, retry policy, new tools) - file an issue at taylorwilsdon/google_workspace_mcp first if it requires design discussion, or open a PR directly if the right answer is mechanically clear. Each PR should be one focused branch off your fork's main (not off fork-extension which is historical). See the issue #731 and PR #742 thread for the contribution-style template that worked.
+2. MCP-server-level fixes (tool behaviour, scope handling, retry policy, new tools) - file an issue at taylorwilsdon/google_workspace_mcp first if it requires design discussion, or open a PR directly if the right answer is mechanically clear. The contribution pattern - fork taylorwilsdon's repo fresh, branch off its main, single focused PR, link any related issue. See the issue #731 and PR #742 thread for an example that worked. Do not reuse the old `juliandickie/google_workspace_mcp` fork - that was retired with v0.3.0; start from upstream.
 
 3. AHPRA-specific workflow concerns - those go in the AHPRA repo's `scripts/gdocs/` rather than here. Don't pull AHPRA conventions into this plugin's general-purpose surface.
 
@@ -236,9 +262,23 @@ Internal-type OAuth consent screens only accept identities from the owning Works
 
 ### Skills frontmatter
 
-The `disable-model-invocation: true` flag in skill frontmatter prevents Claude from auto-triggering a skill based on context matching. Use it for skills that should ONLY run when the user explicitly types the slash command. Five of our six skills have it. The `workspace` skill does NOT have it (it's auto-activated context). The `push` skill does NOT have it either (we want both - explicit `/scribe:push` invocation AND auto-activation when the user says "push this markdown to Drive").
+The `disable-model-invocation: true` flag in skill frontmatter prevents Claude from auto-triggering a skill based on context matching. Use it for skills that should ONLY run when the user explicitly types the slash command.
+
+Where it applies in v1.0:
+
+- **All 14 workflow skills** have `disable-model-invocation: true` (user-only invocation via slash command).
+
+- **Infra skills** `auth-init`, `auth-add`, `auth-status`, `client-resolve` have it (one-time setup operations, not for auto-trigger).
+
+- **The `workspace` orchestration router** does NOT have it (auto-activates on every Workspace-context turn).
+
+- **All 10 service skills** (gmail, calendar, docs, drive, sheets, slides, contacts, tasks, forms, chat) do NOT have it (auto-activate when their service is in scope).
+
+- **The `push` skill** does NOT have it (we want both - explicit `/scribe:push` invocation AND auto-activation when the user says "push this markdown to Drive").
 
 The `argument-hint` field in skill frontmatter is the modern equivalent of `arguments` arrays from the legacy commands/ format. Use a string like `<file> [--folder <id>] [--account <email>]` rather than a structured list.
+
+The `last-validated` field (ISO date) records when each skill was last smoke-tested against the current upstream pin. This serves the maintenance need of knowing which skills haven't been touched since upstream changed. `make validate` does not currently enforce this; it is informational.
 
 ### Icon regeneration
 
@@ -268,7 +308,7 @@ For dedicated multi-plugin workflows, the right place is a separate meta-orchest
 
 - Don't add a `commands/` directory. Skills cover both auto-activation and user invocation per the current Claude Code spec.
 
-- Don't reference the fork URL `git+https://github.com/juliandickie/google_workspace_mcp.git@fork-extension` anywhere in user-facing files. The fork's branch is historical only. All install paths should reference `workspace-mcp@<version>` from PyPI.
+- Don't reference any `juliandickie/google_workspace_mcp` URL or branch (including the historical `fork-extension`) anywhere in user-facing files. That fork is retired. All install paths must reference `workspace-mcp@<version>` from PyPI, which builds from taylorwilsdon's main branch.
 
 - Don't include AHPRA-specific conventions in skill prose. The `client-resolve` skill is intentionally scoped as "AHPRA-style repo convention" and explicitly says it's a no-op in non-AHPRA repos. Don't extend other skills with AHPRA tab-label expectations or condition-id assumptions.
 
