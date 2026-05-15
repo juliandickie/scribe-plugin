@@ -107,11 +107,11 @@ Each service skill is a new directory under `skills/` with auto-activation enabl
 
 Each service skill follows a consistent template:
 
-1. Frontmatter - description (narrow), no disable-model-invocation flag.
+1. Frontmatter - description (narrow, specific service nouns - the "trigger not documentation" rule), `last-validated` date, no `disable-model-invocation` flag.
 
 2. What this skill does - one sentence.
 
-3. When to use - bullet list of trigger contexts.
+3. When to use - bullet list of trigger contexts using language a user would actually type.
 
 4. Tool reference - each MCP tool with parameter shapes and one-line purpose.
 
@@ -119,7 +119,9 @@ Each service skill follows a consistent template:
 
 6. Gotchas - service-specific quirks (e.g. Gmail label IDs vs names, Calendar timezone handling, Sheets A1 vs R1C1 notation).
 
-7. Account selection - reminder to pass `user_google_email` and how to determine the right one.
+7. Account selection - reminder to pass `user_google_email` and how to determine the right one (links back to `workspace/SKILL.md` Multi-account routing rules).
+
+Target body length 200-400 lines per service skill. Anything longer splits into supporting files in the skill directory (progressive disclosure pattern).
 
 The docs/ and drive/ skills extract content from the current workspace/SKILL.md (which currently embeds both). After extraction, workspace/SKILL.md no longer contains per-tool details for any service - it pure orchestration.
 
@@ -150,21 +152,23 @@ Each workflow skill is a new directory under `skills/` with `disable-model-invoc
 
 Each workflow skill file follows a consistent template:
 
-1. Frontmatter - description (specific to the workflow), `disable-model-invocation: true`, `argument-hint` string for any parameters.
+1. Frontmatter - description (specific trigger phrase a user would type), `disable-model-invocation: true`, `argument-hint` string for parameters (named flags pattern for multi-arg workflows, positional for single-arg), `last-validated` date.
 
 2. What this workflow does - one paragraph.
 
-3. Parameters - what the user can pass on invocation (account email, date range, client name, folder ID, etc.) and what defaults apply when omitted.
+3. Parameters - what the user can pass on invocation (account email, date range, client name, folder ID, etc.) and what defaults apply when omitted. Both natural-language and explicit-args invocation styles documented.
 
 4. Tool call sequence - the exact MCP tool calls in order, with parameter notes.
 
-5. Multi-account behavior - whether the workflow loops over all accounts or uses a single specified one.
+5. Multi-account behavior - whether the workflow loops over all accounts or uses a single specified one. Defers to the rule in `workspace/SKILL.md` for selection logic.
 
 6. Cross-plugin composition - "if the ClickUp plugin is installed, also create a ClickUp task" / "if the Slack plugin is installed, also post a summary to channel X". This is the prose-hint pattern that lets Claude compose Scribe with other plugins without code coupling.
 
-7. Example invocations - 2-3 natural language examples showing how to call the skill and what happens.
+7. Example invocations - 2-3 natural language examples plus 1 explicit-args example showing how to call the skill and what happens.
 
 8. Failure modes - what to do if no matching emails found, no inbox connected, sandbox rejection, etc.
+
+Target body length 100-300 lines per workflow skill.
 
 ## Plugin manifest changes (.claude-plugin/plugin.json)
 
@@ -300,21 +304,121 @@ skills/attach-vault/SKILL.md                 new
 skills/event-recap/SKILL.md                  new
 skills/smart-reply/SKILL.md                  new
 skills/educator-setup/SKILL.md               new
-Makefile                                     modify - validate target counts new skill dirs
+Makefile                                     modify - validate target, new check-upstream target
+.github/workflows/upstream-check.yml         optional new - weekly automation, deferred decision
 ```
 
-Total - 9 modify, 27 new, 4 unchanged. Across 30 skill directories after the expansion (6 existing + 10 service + 14 workflow).
+Total - 9 modify, 27 new (28 if upstream-check workflow ships in v1.0), 4 unchanged. Across 30 skill directories after the expansion (6 existing + 10 service + 14 workflow).
 
-## Risks and open questions
+## Resolved decisions (revised 2026-05-15 after feedback)
 
-**Risk - skill collision in auto-activation.** With 11 auto-activated skills (workspace + 10 service skills), Claude may load multiple simultaneously when context is ambiguous. Mitigation - keep service skill descriptions narrow (specific service nouns), keep workspace skill description broad-but-distinct (orchestration/multi-service/routing language). Test by invoking ambiguous prompts and checking which skills load.
+These were open questions in the initial draft; resolved after second-pass review.
 
-**Risk - OAuth scope breadth.** Enabling all 12 tool groups requests broad scopes. New users may balk at the consent screen. Mitigation - document `--permissions` override clearly in auth-init for users who want to restrict, link to upstream issue #771 for scope discussion.
+### Decision - argument syntax for workflow skills
 
-**Risk - upstream pin lag.** New workspace-mcp release between spec and ship. Mitigation - check for latest release at the start of implementation, pin to whatever is current then, document the pin date in CLAUDE.md current-state block.
+Use the `argument-hint` frontmatter field (per current Claude Code skill spec) with **named flags for any workflow that has more than one parameter, positional for single-arg workflows**.
 
-**Open question - workflow skill argument syntax.** Should multi-arg workflows use named flags (`/scribe:meeting-prep --event "Q3 planning"`) or positional args (`/scribe:meeting-prep "Q3 planning"`)? Lean toward named flags for consistency with current `/scribe:push` flag pattern, but worth confirming when writing the implementation plan.
+Rationale - based on current best practice docs, `argument-hint` populates the slash command autocomplete menu, and `$ARGUMENTS` captures the full string (named flags survive). Most invocations will be natural language (Claude populating the arguments from intent), so the syntax matters most as readable documentation. Named flags are self-documenting in the slash autocomplete; positional is concise for one-arg cases.
 
-**Open question - account selection UX.** When a workflow loops over all accounts, should it auto-loop or prompt the user? Lean toward auto-loop with summary output ("scanned 3 accounts, found 12 unread"), but worth confirming.
+Examples:
 
-**Open question - workflow skill versioning when plugin bumps.** When v1.1 ships and adds 3 new workflow skills, do existing workflow skills carry version metadata? Probably not in v1.0 - revisit if backward compatibility becomes an issue.
+- `/scribe:meeting-prep [--event "Q3 planning"] [--account email]` - named flags
+- `/scribe:contact-brief NAME-OR-EMAIL` - positional, single arg
+- `/scribe:thread-to-doc [--thread-id ID] [--client CLIENT-ID]` - named flags
+- `/scribe:weekly-wrap [--week current|last|N] [--output-folder ID]` - named flags
+
+Each workflow skill's body documents both natural-language and explicit-args invocation styles.
+
+### Decision - account selection behavior
+
+- Explicit multi-account intent in user prompt ("check both my inboxes", "across all my accounts", "for julian@idd and julian@pro") - auto-loop across all matching accounts, do not prompt.
+
+- Single account authenticated - use it, do not prompt.
+
+- Client or contact context implies an account (AHPRA profile.md, Contacts lookup) - use it, do not prompt.
+
+- Ambiguous intent with multiple accounts authenticated ("check my inbox") - prompt the user once to clarify, then remember within the conversation.
+
+Document this rule in `workspace/SKILL.md` under "Multi-account routing." Each workflow skill links back to this rule rather than re-stating it.
+
+### Decision - per-skill versioning
+
+No per-skill semver versions. Skills are prose, not API surfaces, so semantic versioning per skill creates maintenance overhead without payoff.
+
+Instead - each SKILL.md frontmatter includes an optional `last-validated` field (ISO date) recording when the skill was last smoke-tested against the current upstream pin. This serves the actual maintenance need: "which skills haven't been touched since upstream changed?" The plugin's git history covers per-skill change tracking.
+
+`make validate` checks that `last-validated` dates exist and warns if any skill is older than the current upstream pin date.
+
+### Decision - OAuth scope breadth posture
+
+Not treated as a risk. Initial users are internal; they expect the full scope grant as part of the value proposition. README messaging stays positive (does not apologise for scope breadth). The `--permissions` override is documented in `auth-init/SKILL.md` as an advanced option for users who want to restrict, not foregrounded.
+
+## Upstream maintenance cadence (new section)
+
+Regular upstream-version check is now a first-class maintenance ritual, not an ad-hoc activity.
+
+### Implementation
+
+Add a `make check-upstream` target that queries the PyPI JSON API for the latest `workspace-mcp` release, compares against the pinned version in `plugin.json`, and prints status. The PyPI JSON endpoint is `https://pypi.org/pypi/workspace-mcp/json`.
+
+```makefile
+check-upstream:
+	@current=$$(jq -r '.mcpServers.scribe.args[0]' .claude-plugin/plugin.json | sed 's/workspace-mcp@//'); \
+	latest=$$(curl -s https://pypi.org/pypi/workspace-mcp/json | jq -r '.info.version'); \
+	if [ "$$current" = "$$latest" ]; then \
+		echo "PASS - current pin $$current matches latest PyPI release"; \
+	else \
+		echo "OUTDATED - current pin $$current, latest is $$latest"; \
+		echo "Review changelog at https://github.com/taylorwilsdon/google_workspace_mcp/releases"; \
+	fi
+```
+
+### Cadence
+
+- **Monthly minimum** - `make check-upstream` is documented in CLAUDE.md as a monthly maintenance ritual.
+
+- **Pre-release** - run before every `make publish` cycle to catch unannounced upstream changes.
+
+- **Optional automation** - a GitHub Actions workflow (`.github/workflows/upstream-check.yml`) can run weekly and open an issue if drift is detected. Decision deferred to implementation phase; not blocking v1.0.
+
+### Update workflow when outdated
+
+When `make check-upstream` reports drift:
+
+1. Read the upstream release notes at https://github.com/taylorwilsdon/google_workspace_mcp/releases for the diff range.
+
+2. Identify breaking changes (tool renames, parameter changes, scope additions).
+
+3. If breaking, bump Scribe's MINOR or MAJOR version per the impact.
+
+4. Update the pin in all five files (per CLAUDE.md "Pinning to a new upstream version" section).
+
+5. Run `make validate` and smoke-test affected workflow skills.
+
+6. Update `last-validated` date in skill frontmatter for any skill whose behavior could be affected.
+
+7. `make publish VERSION=<new-version>`.
+
+## Current best-practice findings (from web research 2026-05-15)
+
+The web search surfaced several current best practices worth pinning down for this spec:
+
+**Skill description as trigger, not documentation.** Each service and workflow skill's `description` frontmatter must be specific enough that Claude reliably picks the right skill. Vague descriptions cause skills to silently never fire OR to fire on the wrong context. For our 11 auto-activated skills (workspace + 10 service), each description must use distinct service-specific nouns to avoid collision.
+
+**Frontmatter limits.** `name` max 64 characters, lowercase letters/numbers/hyphens only, no XML tags, no reserved words. `description` max 1024 characters, non-empty. All proposed skill names in this spec fit.
+
+**Body length target.** Keep each SKILL.md under 500 lines for optimal performance. Service skills should aim for 200-400 lines. Workflow skills should aim for 100-300 lines. Long content goes into supporting files in the skill directory and loads only on demand (progressive disclosure).
+
+**disable-model-invocation behavior.** Setting `disable-model-invocation: true` blocks Claude from auto-triggering. User can still invoke via slash command. (There is an open GitHub issue #26251 reporting that some configurations may also block user invocation; the current Scribe plugin's five disable-model-invocation skills all work correctly, so this appears to be a configuration-specific bug not affecting our pattern.)
+
+**Argument capture.** `$ARGUMENTS` captures everything after the slash command as a single string. `$0`, `$1`, `$2` capture space-separated tokens. Named flags work because the full argument string is available to the skill prose; the skill can parse out `--event "Q3 planning"` from the arguments string.
+
+**Schema validation.** Unofficial JSON schemas exist at schemastore.org for `claude-code-plugin-manifest.json` and `claude-code-marketplace.json`. The `plugin-dev:plugin-validator` agent uses these for schema-level checks. Add to the validation step in the plan.
+
+## Risks (revised - shorter)
+
+**Risk - skill collision in auto-activation.** With 11 auto-activated skills, Claude may load multiple simultaneously when context is ambiguous. Mitigation - tight, distinct descriptions per current best practice (the description-as-trigger rule). Manual test - invoke ambiguous prompts during development and verify the right single skill loads.
+
+**Risk - upstream pin lag.** New workspace-mcp release between spec and ship. Mitigation - `make check-upstream` immediately before implementation start; pin to whatever is current then.
+
+(OAuth scope breadth de-risked per the resolved decision above.)
