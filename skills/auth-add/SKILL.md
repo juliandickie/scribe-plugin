@@ -37,7 +37,7 @@ Call the `start_google_auth` MCP tool:
 
 - `user_google_email` - the email the user provided
 
-- `service_name` - use `"drive"` (this also covers Docs scope; calling once is sufficient for both Drive and Docs access)
+- `service_name` - use `"drive"` for the initial setup. This authorises the default scope set the server requests, which covers Drive, Docs, Gmail, Calendar, Sheets, Slides, and most other services in one consent flow. If you later see a "Scope not authorized" error for a specific service, re-run `start_google_auth` with that service name (e.g. `"contacts"`, `"tasks"`, `"forms"`, `"chat"`).
 
 The tool returns a Google authorization URL. Present it to the user as a clickable link and instruct them to -
 
