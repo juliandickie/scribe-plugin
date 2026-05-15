@@ -1,11 +1,11 @@
 ---
-description: Use when the user's request involves Google Sheets - reading cell values, writing data, appending rows, working with ranges in A1 notation, formulas, or creating new spreadsheets. Triggers on spreadsheet, sheet, rows, columns, cells, range, formula, csv data.
+description: Use when the user's request involves Google Sheets - reading cell values, writing data, appending rows, working with ranges in A1 notation, formulas, formatting, or creating new spreadsheets. Triggers on spreadsheet, sheet, rows, columns, cells, range, formula, csv data.
 last-validated: 2026-05-15
 ---
 
 # Scribe - Sheets
 
-Enables Claude to read and write Google Sheets - ranges, individual cells, full sheets, formulas, and structured data tables.
+Enables Claude to read and write Google Sheets - ranges, individual cells, full sheets, formulas, structured data tables, and formatting.
 
 ## When to use
 
@@ -13,93 +13,101 @@ Use this skill when the user's request involves -
 
 - Reading data from a specific Sheet or range
 
-- Appending rows to a tracking sheet
+- Appending rows to a tracking sheet (using a structured table)
 
 - Updating cells with computed values or formulas
 
-- Creating new sheets or duplicating templates
+- Creating new spreadsheets or sheets (tabs)
 
-- Exporting structured data into a Sheet
+- Formatting cells, ranges, or applying conditional formatting
+
+- Listing spreadsheets, sheets, or tables
 
 ## MCP tool reference
 
-The exact tool names exposed for Sheets depend on the workspace-mcp version. At runtime, inspect the available MCP tools panel for the current set. The typical operations exposed are:
+The following tools are exposed by workspace-mcp@1.20.4 for Sheets. Pass `user_google_email` on every call.
 
-### read_range / get_sheet_values
+### list_spreadsheets
 
-Return cell values for an A1-notated range.
+List spreadsheets visible to the user (paginates Drive for Sheet-type files).
 
-Parameters:
+### get_spreadsheet_info
 
-- `spreadsheet_id`
+Get metadata for a spreadsheet (title, sheets list with IDs, named ranges).
 
-- `range` - A1 notation, e.g. `"Sheet1!A1:C10"`
+Parameters: `spreadsheet_id`, `user_google_email`.
 
-- `user_google_email`
+### read_sheet_values
+
+Read cell values for an A1-notated range.
+
+Parameters: `spreadsheet_id`, `range` (e.g. `"Sheet1!A1:C10"`), `user_google_email`.
 
 Returns: 2D array of cell values.
 
-### write_range / update_sheet_values
+### modify_sheet_values
 
-Overwrite cell values for a range.
+Write cell values for a range. Supports overwrite and append modes.
 
-Parameters:
+Parameters: `spreadsheet_id`, `range`, `values` (2D array), `user_google_email`, and a mode/option to control overwrite vs. append.
 
-- `spreadsheet_id`
+### format_sheet_range
 
-- `range`
+Apply formatting (font, color, borders, number formats) to a range.
 
-- `values[][]` - 2D array
+### manage_conditional_formatting
 
-- `user_google_email`
-
-### append_row / append_values
-
-Add a new row at the bottom of the data region.
-
-Parameters:
-
-- `spreadsheet_id`
-
-- `sheet_name` (or range with sheet specified)
-
-- `values[]` - row contents
-
-- `user_google_email`
+Add, update, or remove conditional formatting rules.
 
 ### create_spreadsheet
 
 Create a new spreadsheet (new file in Drive).
 
-Parameters: `title`, `parent_folder_id` (optional), `user_google_email`.
+Parameters: `title`, optional `parent_folder_id`, `user_google_email`.
 
-### create_sheet / add_sheet
+### create_sheet
 
-Add a new tab (sheet) to an existing spreadsheet.
+Add a new sheet (tab) to an existing spreadsheet.
 
-### clear_range
+Parameters: `spreadsheet_id`, `title`, `user_google_email`.
 
-Empty cells without deleting the structure.
+### list_sheet_tables
 
-**At implementation time, verify the actual tool names by inspecting the MCP tools panel and update this section.** The patterns below describe the conceptual operations regardless of exact tool names.
+List structured tables defined within a spreadsheet (named tables, not raw data regions).
+
+### append_table_rows
+
+Append one or more rows to a structured table. This is the canonical pattern for tracking sheets where you want strict append semantics.
+
+Parameters: `spreadsheet_id`, `table_name` (or table reference), `rows[][]`, `user_google_email`.
+
+### resize_sheet_dimensions
+
+Resize rows or columns (e.g. set column widths).
+
+### move_sheet_rows
+
+Move rows within a sheet.
 
 ## Common patterns
 
-### Log a support inquiry
+### Log a support inquiry into a tracking table
 
-1. Read header row to confirm column layout (e.g. `range="Tracker!A1:F1"`).
+1. `list_sheet_tables` (or `get_spreadsheet_info`) to confirm the target table exists.
 
-2. Append row with `[timestamp, sender, subject, link_to_thread, classification, status]`.
+2. `append_table_rows` with `[timestamp, sender, subject, link_to_thread, classification, status]`.
+
+If the target sheet is not a structured table, use `modify_sheet_values` instead to write the row at the next empty row found via `read_sheet_values` on the relevant column.
 
 ### Read a config sheet
 
-1. Read named range like `Config!A1:B20`.
+1. `read_sheet_values` with `range="Config!A1:B20"`.
 
-2. Parse rows into key-value pairs.
+2. Parse rows into key-value pairs in prose.
 
 ### Bulk update
 
-- Prefer batched range writes over per-cell calls for performance. One write to a 10x10 range is much faster than 100 individual cell writes.
+- Prefer batched range writes via `modify_sheet_values` over per-cell calls. One write to a 10x10 range is much faster than 100 individual cell writes.
 
 ## Gotchas
 
@@ -109,17 +117,17 @@ Empty cells without deleting the structure.
 
 - Sheet IDs (`gid` in URLs) are different from spreadsheet IDs. The spreadsheet ID is the long random string in the URL; the sheet ID is the small numeric `gid` parameter.
 
-- Append-row finds the first empty row in a sheet, not necessarily after the last data row. If a sheet has gaps, append may slot into a gap. For strict append-at-end behaviour, read the last-row index first and write to that row + 1.
+- `append_table_rows` requires a structured table. If the sheet is just raw data without a defined table, use `modify_sheet_values` and compute the target row manually. The structured-table path is more robust for tracking sheets created specifically for logging.
 
-- Date and time values are returned as serial numbers unless the column is formatted as date. Format the column or convert in-prose.
+- Date and time values are returned as serial numbers unless the column is formatted as date. Format via `format_sheet_range` or convert in prose.
 
 ## Account selection
 
-Pass `user_google_email` on every call. The full account selection logic lives in `skills/workspace/SKILL.md` under "Multi-account routing."
+Pass `user_google_email` on every call. See `skills/workspace/SKILL.md` "Multi-account routing" for the selection rules.
 
 ## Cross-service handoff
 
-When a request spans services (e.g. logging an email to a sheet), this skill's role ends after the sheet operation. The orchestration layer handles chaining to Gmail, Drive, etc.
+When a request spans services (e.g. logging an email to a sheet), this skill's role ends after the sheet operation. The orchestration layer in workspace/SKILL.md handles chaining to Gmail, Drive, etc.
 
 ## Source
 

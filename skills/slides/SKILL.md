@@ -1,11 +1,11 @@
 ---
-description: Use when the user's request involves Google Slides - reading or updating slide content, creating presentations, modifying slide elements, or working with decks. Triggers on presentation, deck, slide, slides, slideshow.
+description: Use when the user's request involves Google Slides - reading or updating slide content, creating presentations, modifying slide elements, generating decks from outlines. Triggers on presentation, deck, slide, slides, slideshow.
 last-validated: 2026-05-15
 ---
 
 # Scribe - Slides
 
-Enables Claude to read, create, and update Google Slides presentations - slide content, layout, and text.
+Enables Claude to read, create, and update Google Slides presentations. All structural updates flow through `batch_update_presentation` with a list of requests (mirroring the Google Slides API's batchUpdate pattern).
 
 ## When to use
 
@@ -19,59 +19,77 @@ Use this skill when the user's request involves -
 
 - Modifying text on specific slides
 
+- Getting thumbnails of specific slides
+
 ## MCP tool reference
 
-The exact tool names exposed for Slides depend on the workspace-mcp version. At runtime, inspect the available MCP tools panel for the current set. Typical operations:
-
-### read_presentation / get_presentation
-
-Returns all slide contents.
-
-Parameters: `presentation_id`, `user_google_email`.
+The following tools are exposed by workspace-mcp@1.20.4 for Slides. Pass `user_google_email` on every call.
 
 ### create_presentation
 
-Create a new presentation in Drive.
+Create a new presentation (new file in Drive).
 
-Parameters: `title`, `parent_folder_id` (optional), `user_google_email`.
+Parameters: `title`, optional `parent_folder_id`, `user_google_email`.
 
-### add_slide
+### get_presentation
 
-Add a slide to an existing presentation.
+Read a presentation's full structure - all pages (slides), all elements, layouts.
 
-Parameters: `presentation_id`, `layout` (e.g. `"TITLE"`, `"TITLE_AND_BODY"`), `index` (optional position), `user_google_email`.
+Parameters: `presentation_id`, `user_google_email`.
 
-### update_slide_content
+### batch_update_presentation
 
-Modify text or elements on a specific slide.
+The workhorse mutation tool. Accepts a list of update requests. All slide creation, deletion, text edits, image inserts, layout changes go through this.
 
-Parameters: `presentation_id`, `slide_id`, content updates, `user_google_email`.
+Parameters:
 
-**At implementation time, verify the actual tool names by inspecting the MCP tools panel and update this section.**
+- `presentation_id`
+
+- `requests[]` - list of update request objects. Each follows the Google Slides API batchUpdate shape (e.g. `{"createSlide": {...}}`, `{"insertText": {...}}`, `{"deleteObject": {...}}`).
+
+- `user_google_email`
+
+### get_page
+
+Read a single slide (page) by ID.
+
+### get_page_thumbnail
+
+Get a thumbnail image of a specific slide.
 
 ## Common patterns
 
 ### Generate a deck from an outline
 
-1. `create_presentation` with the deck title.
+1. `create_presentation` with the deck title - returns the new presentation ID and the default first slide ID.
 
-2. Per outline section, `add_slide` with the appropriate layout.
-
-3. `update_slide_content` to set title and body text per slide.
+2. `batch_update_presentation` with a request list that adds one slide per outline section. For each new slide, also include `insertText` requests to populate title and body placeholders. Batch them in one call where possible - it's atomic and faster.
 
 ### Read existing deck and summarise
 
-1. `read_presentation` to fetch all slides.
+1. `get_presentation` to fetch all slides.
 
-2. Surface slide titles and key text content as a structured summary.
+2. Walk the pages array; for each page surface its title and key text content as a structured summary.
+
+### Add a slide at a specific position
+
+1. `batch_update_presentation` with a `createSlide` request including `insertionIndex` and `slideLayoutReference`.
+
+### Replace text on a specific slide
+
+1. `batch_update_presentation` with a `replaceAllText` request scoped to the specific page object ID, or with `deleteText` + `insertText` requests targeting a specific element.
 
 ## Gotchas
 
-- Slides has rich layout primitives (text boxes, shapes, images). Don't assume a slide is just a title and bullets.
+- All structural changes flow through `batch_update_presentation`. There is NO separate `add_slide` or `update_slide_content` tool - those operations are individual request objects within a batchUpdate call.
 
-- Layouts are template-driven. Changing a slide's layout often requires understanding the master slide structure.
+- Layouts are template-driven. Use `slideLayoutReference` with predefined layout IDs (e.g. `TITLE_AND_BODY`, `TITLE`, `SECTION_HEADER`) when creating slides. Custom layouts have their own IDs visible in `get_presentation` output.
 
-- Slide IDs are different from page numbers. Always work with IDs returned from `read_presentation` or `add_slide`.
+- `batch_update_presentation` is atomic - if any request in the list fails, none are applied. Group operations that should succeed-or-fail together.
+
+- Slide IDs are different from indexes. The first slide is at index 0 but its object ID is a random string (or "p" prefix for default). Always use IDs from `get_presentation` rather than guessing.
+
+- Placeholders (title, body, etc.) have their own object IDs distinct from the slide's ID. To insert text into a title placeholder, target the placeholder's object ID, not the slide ID.
 
 ## Account selection
 
@@ -79,7 +97,7 @@ Pass `user_google_email` on every call. See `skills/workspace/SKILL.md` for acco
 
 ## Cross-service handoff
 
-When generating a deck from a Doc or other source, this skill handles the slide creation. The orchestration layer handles chaining to other services.
+When generating a deck from a Doc or other source, this skill handles the slide creation. The orchestration layer handles chaining to other services (e.g. reading the source Doc first).
 
 ## Source
 

@@ -53,10 +53,6 @@ Read file content for supported types.
 
 Get a download URL for a file.
 
-### read_file_content / download_file_content
-
-Lower-level read operations.
-
 ### create_drive_folder
 
 Create a folder.
@@ -109,13 +105,11 @@ Read permissions; check whether a file is publicly accessible.
 
 Get a shareable URL for a file.
 
-### get_file_metadata / get_file_permissions
+### import_to_google_doc
 
-Inspect metadata and permissions.
+Convert and import a local file as a new Google Doc.
 
-### search_files / list_recent_files
-
-Variants of search and list.
+Parameters: `file_path` (sandbox-bound to `~/.workspace-mcp/attachments`), `source_format`, `parent_folder_id` (optional), `user_google_email`. See `skills/push/SKILL.md` for the sandbox auto-copy decision tree.
 
 ## Common patterns
 

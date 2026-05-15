@@ -5,7 +5,7 @@ last-validated: 2026-05-15
 
 # Scribe - Tasks
 
-Enables Claude to read, create, and complete items in Google Tasks - the lightweight to-do system separate from external PM tools.
+Enables Claude to read, create, and complete items in Google Tasks - the lightweight to-do system separate from external PM tools. All mutations flow through `manage_task` and `manage_task_list` with action verbs.
 
 ## When to use
 
@@ -15,53 +15,85 @@ Use this skill when the user's request involves -
 
 - Creating new tasks from email or doc content
 
-- Marking tasks complete
+- Marking tasks complete, updating, or deleting them
 
-- Managing or listing task lists
+- Listing or managing task lists
 
 ## MCP tool reference
 
-The exact tool names depend on the workspace-mcp version - inspect the MCP tools panel for the current set. Typical operations:
+The following tools are exposed by workspace-mcp@1.20.4 for Tasks. Pass `user_google_email` on every call.
 
 ### list_task_lists
 
-Enumerate the user's task lists.
+Enumerate the user's task lists. Returns each list's ID and title.
 
 Parameters: `user_google_email`.
 
-### read_tasks_in_list / get_tasks
+### get_task_list
 
-Read tasks in a specific list.
+Read metadata for a specific task list.
 
-Parameters: `task_list_id`, optional filters (`completed`, `due_before`), `user_google_email`.
+Parameters: `task_list_id`, `user_google_email`.
 
-### create_task
+### manage_task_list
 
-Create a new task.
+Create, update, or delete a task list.
+
+Parameters:
+
+- `action` - `"create"`, `"update"`, or `"delete"`
+
+- `task_list_id` - required for update/delete
+
+- `title` - required for create/update
+
+- `user_google_email`
+
+### list_tasks
+
+Read tasks within a list, with filters.
 
 Parameters:
 
 - `task_list_id`
 
-- `title`
+- `show_completed` (optional bool)
+
+- `show_hidden` (optional bool)
+
+- `due_min`, `due_max` (optional, RFC 3339)
+
+- `updated_min` (optional)
+
+- `user_google_email`
+
+### get_task
+
+Read a single task by ID.
+
+Parameters: `task_list_id`, `task_id`, `user_google_email`.
+
+### manage_task
+
+Create, update, or delete a task - action-based interface.
+
+Parameters:
+
+- `action` - `"create"`, `"update"`, or `"delete"`
+
+- `task_list_id`
+
+- `task_id` - required for update/delete
+
+- `title` - required for create
 
 - `notes` (optional)
 
 - `due` (optional, RFC 3339)
 
+- `status` - `"needsAction"` or `"completed"` (use this to mark complete via update)
+
 - `user_google_email`
-
-### update_task
-
-Update task fields - mark complete, change due date, edit title.
-
-Parameters: `task_list_id`, `task_id`, fields to update, `user_google_email`.
-
-### delete_task
-
-Delete a task.
-
-**At implementation time, verify the actual tool names by inspecting the MCP tools panel.**
 
 ## Common patterns
 
@@ -69,27 +101,35 @@ Delete a task.
 
 1. Read the doc content (use the docs skill).
 
-2. Parse action items.
+2. Parse action items from the text.
 
-3. `create_task` per item against the user's default task list.
+3. `list_task_lists` to find the target list. If none specified, use the user's default (first list).
+
+4. `manage_task` with `action="create"` per item.
 
 ### Daily task surfacing
 
 1. `list_task_lists` to find the default list.
 
-2. `read_tasks_in_list` filtered by `completed=false` and `due_before=tomorrow`.
+2. `list_tasks` with `show_completed=false`, `due_max=<end of today>`.
 
 3. Surface incomplete items due today or overdue.
+
+### Mark a task complete
+
+1. `manage_task` with `action="update"`, `task_id`, `status="completed"`.
 
 ## Gotchas
 
 - Google Tasks is the simple to-do system inside Gmail/Calendar UI. Not to be confused with Google Workspace Admin API "tasks" (different surface used in admin contexts).
 
-- If the user uses ClickUp (or another PM system) as primary, defer task creation to that plugin per the cross-plugin composition pattern in workspace/SKILL.md. Don't double-write tasks across systems.
+- All CRUD operations on tasks flow through `manage_task`. There is no separate `create_task`, `update_task`, or `delete_task` tool - the action verb selects the operation.
 
 - Task lists are per-account.
 
-- Subtasks exist but require working with parent_task_id; check the API surface if subtasks matter.
+- To mark a task complete, call `manage_task` with `action="update"` and `status="completed"`. There is no dedicated "complete" action.
+
+- If the user uses ClickUp (or another PM system) as primary, defer task creation to that plugin per the cross-plugin composition pattern in workspace/SKILL.md. Don't double-write tasks across systems.
 
 ## Account selection
 

@@ -5,7 +5,7 @@ last-validated: 2026-05-15
 
 # Scribe - Contacts
 
-Enables Claude to read and create Google Contacts via the People API - useful for resolving names to emails, enriching contact info, and creating new contact entries.
+Enables Claude to read, create, search, and manage Google Contacts via the People API - useful for resolving names to emails, enriching contact info, creating new contact entries, and grouping contacts.
 
 ## When to use
 
@@ -15,41 +15,69 @@ Use this skill when the user's request involves -
 
 - Looking up by email to find their name and other metadata
 
-- Creating a new contact
+- Creating, updating, or deleting a contact entry
 
-- Listing contacts in a specific group
+- Listing contacts in a specific contact group
+
+- Bulk-managing many contacts at once
 
 ## MCP tool reference
 
-The exact tool names depend on the workspace-mcp version - inspect the MCP tools panel for the current set. Typical operations:
-
-### read_contact / get_contact
-
-Look up a contact by ID or email.
-
-Parameters: `contact_id` or `email`, `user_google_email`.
-
-Returns: contact metadata (name, email(s), phone, organisation, notes).
-
-### search_contacts
-
-Search by name or query.
-
-Parameters: `query`, `user_google_email`.
+The following tools are exposed by workspace-mcp@1.20.4 for Contacts. Pass `user_google_email` on every call. Mutations (create/update/delete) flow through `manage_contact` or `manage_contacts_batch` with action verbs.
 
 ### list_contacts
 
-List contacts.
+List the user's contacts.
 
-Parameters: `user_google_email`, optional pagination.
+Parameters: `user_google_email`, optional pagination, optional field mask.
 
-### create_contact
+### get_contact
 
-Create a new contact entry.
+Read a specific contact by resource name (returned from search/list as something like `people/c12345`).
 
-Parameters: `name`, `email`, optional fields (phone, organisation, notes), `user_google_email`.
+Parameters: `resource_name`, `user_google_email`, optional field mask.
 
-**At implementation time, verify the actual tool names by inspecting the MCP tools panel.**
+### search_contacts
+
+Search contacts by name, email, or other fields.
+
+Parameters: `query`, `user_google_email`.
+
+Returns: list of matching contacts with resource names.
+
+### manage_contact
+
+Create, update, or delete a single contact - action-based interface.
+
+Parameters:
+
+- `action` - `"create"`, `"update"`, or `"delete"`
+
+- `resource_name` - required for update/delete
+
+- Contact fields - `names`, `email_addresses`, `phone_numbers`, `organizations`, `biographies`, etc. (passed as structured data for create/update)
+
+- `user_google_email`
+
+### list_contact_groups
+
+List contact groups (labels/categories).
+
+### get_contact_group
+
+Read a single contact group, including member contacts.
+
+### manage_contact_group
+
+Create, update, or delete a contact group.
+
+Parameters: `action`, group fields, `user_google_email`.
+
+### manage_contacts_batch
+
+Apply create/update/delete to many contacts in a single batched call.
+
+Parameters: `action`, list of contact payloads (each with its own fields and, for update/delete, resource_name), `user_google_email`.
 
 ## Common patterns
 
@@ -57,25 +85,37 @@ Parameters: `name`, `email`, optional fields (phone, organisation, notes), `user
 
 1. `search_contacts` with the name as query.
 
-2. Return the matching email(s). If multiple matches, prompt user to disambiguate.
+2. Inspect the results' `email_addresses` field. If multiple matches, prompt user to disambiguate.
 
 ### Enrich an email
 
-1. Given an email, `read_contact` (or search by email).
+1. `search_contacts` with the email as query (works because the API matches across fields).
 
-2. Surface name, organisation, phone if present.
+2. From the matching contact, surface name, organisation, phone numbers if present.
+
+### Create a new contact
+
+1. `manage_contact` with `action="create"`, populated `names`, `email_addresses`, and any other fields the user provided.
+
+2. The response includes the new contact's `resource_name`.
+
+### Add a contact to a group
+
+1. `manage_contact_group` (or specific membership operations exposed by upstream) - check `get_contact_group` for membership semantics in the current API surface.
 
 ## Gotchas
 
-- The People API distinguishes between contacts (people you've explicitly added) and "other contacts" (people you've emailed but not added). Both may be searchable.
+- The People API uses **resource names** like `people/c12345` for contact identifiers, not raw IDs. Always pass the full resource_name returned by list/search/get.
 
-- Workspace org contacts (directory) are separate from personal contacts. The API exposes both differently - some tools return one, some both.
+- The People API distinguishes between contacts (people you've explicitly added) and "other contacts" (people you've emailed but not added). `search_contacts` searches your saved contacts by default; "other contacts" may need a different field mask or call.
 
-- Display names can differ from primary email's display field. Treat name and email as separate identity facets.
+- Workspace org contacts (directory) are separate from personal contacts. Within an org, the directory is searchable via the same People API but the result set may differ depending on org settings.
+
+- All mutations route through `manage_contact` (or `manage_contacts_batch` for bulk). There is no separate `create_contact` or `delete_contact` tool.
 
 ## Account selection
 
-Pass `user_google_email` on every call. Note that contacts are per-account - a contact in julian@idd is not visible to julian@pro. If looking up across accounts, loop over accounts.
+Pass `user_google_email` on every call. Contacts are per-account - a contact saved under julian@idd is not visible to julian@pro. For cross-account lookups, loop over accounts using the credentials directory scan.
 
 ## Cross-service handoff
 

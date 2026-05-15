@@ -77,17 +77,9 @@ Returns: ordered list of messages in the thread.
 
 ### get_gmail_threads_content_batch
 
-Batch fetch multiple threads.
+Batch fetch multiple threads by IDs.
 
-### search_gmail_threads
-
-Thread-level search.
-
-Parameters:
-
-- `query` (Gmail query syntax)
-
-- `user_google_email`
+Note: there is no dedicated thread-level search tool. To find threads, use `search_gmail_messages` (results include `thread_id`) and then call `get_gmail_thread_content` or `get_gmail_threads_content_batch` to fetch the full thread content for the IDs you care about.
 
 ### get_gmail_attachment_content
 
