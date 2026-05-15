@@ -14,13 +14,15 @@ A Claude Code plugin that wraps [taylorwilsdon's `workspace-mcp`](https://github
 
 The plugin's distinctive value is the integration polish, not the underlying MCP server's capability. The capability is upstream's. We made the install one command, the OAuth setup five minutes, and the cross-Workspace-org workflow tractable.
 
-## Current state - as of 2026-05-08
+## Current state - as of 2026-05-15
 
-- **Plugin version** - 0.3.0 (in plugin.json + marketplace.json)
+- **Plugin version** - 1.0.0 (in plugin.json + marketplace.json)
 - **Pinned upstream version** - `workspace-mcp@1.20.4` from PyPI
-- **Distribution** - GitHub at `juliandickie/scribe-plugin`, public, MIT licensed, with v0.3.0 release tagged
+- **Distribution** - GitHub at `juliandickie/scribe-plugin`, public, MIT licensed, with v1.0.0 release tagged
 - **Marketplace install** - `/plugin marketplace add juliandickie/scribe-plugin` then `/plugin install scribe`
-- **Direct download** - `https://github.com/juliandickie/scribe-plugin/archive/refs/tags/v0.3.0.zip`
+- **Direct download** - `https://github.com/juliandickie/scribe-plugin/archive/refs/tags/v1.0.0.zip`
+- **Skill count** - 30 (6 existing infra + 1 orchestration + 10 service + 14 workflow)
+- **Tools enabled** - all 12 workspace-mcp tool groups
 
 ## Architecture - where this fits in the broader ecosystem
 
@@ -82,23 +84,57 @@ scribe-plugin/
 └── .gitignore                   # .DS_Store
 ```
 
-## Skills - the modern shape
+## Skills - the three-layer architecture
 
-Claude Code's plugin spec moved from `commands/` (legacy) to `skills/` (current). Every user-invokable surface is a skill with frontmatter `disable-model-invocation: true` so Claude will not auto-trigger it. Skills without that flag are auto-activated when their description matches user context.
+Scribe v1.0 uses a three-layer skill model.
 
-Five of our six skills are user-invoked only -
+**Layer 1 - Orchestration (auto-activated, broad description).**
 
-- `/scribe:auth-init` - First-run Google Cloud + OAuth setup
-- `/scribe:auth-add` - Authenticate an additional Google account
-- `/scribe:auth-status` - List authenticated accounts
-- `/scribe:client-resolve <CLIENT-ID>` - Resolve AHPRA-style client to account+folder
-- `/scribe:push <file> [flags]` - Push markdown to Drive (also auto-activates on natural-language prompts like "push this to my Drive folder")
+- `workspace/SKILL.md` - the routing brain. Multi-account selection rules, cross-service chaining patterns, cross-plugin composition hints, setup precondition checks. Loads on every Workspace-context turn. Does NOT contain per-service tool details.
 
-The sixth is the auto-activated context skill -
+**Layer 2 - Service skills (10 auto-activated, narrow descriptions).**
 
-- `workspace` - Loaded automatically when Claude detects Google Workspace context in user prompts. Teaches Claude the tool patterns (when to use `manage_doc_tab populate_from_markdown` vs `import_to_google_doc`, how to find tab IDs via `inspect_doc_structure`, etc.).
+- `docs/SKILL.md` - Google Docs (tabs, batch updates, find/replace, structure inspection)
 
-The skill named `scribe` was renamed to `workspace` in v0.2.0 to avoid the awkward `/scribe:scribe` invocation name. The auto-activated skill is at `skills/workspace/SKILL.md` even though the plugin name and command prefix are still `scribe`.
+- `drive/SKILL.md` - Drive (folders, files, sharing, permissions, public access)
+
+- `gmail/SKILL.md` - Gmail (search, threads, drafts, send, labels, batch ops)
+
+- `calendar/SKILL.md` - Calendar (events, free/busy, OOO, focus time, calendars)
+
+- `sheets/SKILL.md` - Sheets (ranges, formulas, table creation, append rows)
+
+- `slides/SKILL.md` - Slides (read, create, update slide content, layouts)
+
+- `contacts/SKILL.md` - Contacts (read, create, search via People API)
+
+- `tasks/SKILL.md` - Tasks (read, create, complete, task lists)
+
+- `forms/SKILL.md` - Forms (read responses, create forms, analytics)
+
+- `chat/SKILL.md` - Google Chat (send messages, read spaces)
+
+Each service skill loads only when its specific service is in scope (description-as-trigger rule). Each contains MCP tool API details for that service.
+
+**Layer 3 - Workflow skills (14 user-invokable, disable-model-invocation).**
+
+User-invokable slash commands for named cross-service patterns:
+
+- `/scribe:daily-briefing`, `/scribe:inbox-triage`, `/scribe:support-scan`
+
+- `/scribe:meeting-prep`, `/scribe:thread-to-doc`, `/scribe:client-digest`
+
+- `/scribe:weekly-wrap`, `/scribe:follow-up-tracker`, `/scribe:contact-onboard`
+
+- `/scribe:doc-chase`, `/scribe:attach-vault`, `/scribe:event-recap`
+
+- `/scribe:smart-reply`, `/scribe:educator-setup`
+
+Each workflow skill is a complete recipe for a multi-service tool chain. See `docs/workflows.md` for detailed reference.
+
+**Existing infra skills (5).** `auth-init`, `auth-add`, `auth-status`, `push`, `client-resolve` - unchanged from earlier versions.
+
+**Historical note** - the skill named `scribe` was renamed to `workspace` in v0.2.0 to avoid the awkward `/scribe:scribe` invocation name. The auto-activated skill is at `skills/workspace/SKILL.md` even though the plugin name and command prefix are still `scribe`.
 
 ## Development workflow
 
@@ -218,6 +254,14 @@ Don't hand-edit the smaller variants. They get overwritten. If the brand mark ne
 
 Don't add a `commands/` directory. The legacy commands/ format is deprecated in favour of skills/. The plugin install warning that appeared in v0.1 ("uses the legacy commands/ format - consider migrating") was the trigger for our v0.2.0 migration. The current state is correct; don't undo it.
 
+### Cross-plugin composition
+
+Scribe never directly calls other plugins' MCP tools or APIs. Cross-plugin orchestration happens through prose hints in workflow skills - e.g. "if the ClickUp plugin is installed, also create a ClickUp task with the email URL." Claude reads the hint, sees the ClickUp plugin's tools are available, and chains the call.
+
+This pattern keeps Scribe decoupled from other plugins' versions. Never add direct tool references like `mcp__clickup__create_task` into Scribe skill prose; reference plugins by their user-facing names ("ClickUp plugin", "Slack plugin") so the prose is robust to plugin renames.
+
+For dedicated multi-plugin workflows, the right place is a separate meta-orchestration plugin - see `/Users/juliandickie/code/plugin-dev/docs/2026-05-15-meta-orchestrator-concept.md`.
+
 ## Don't do this
 
 - Don't pin upstream `workspace-mcp` to a major version range like `>=1.20`. Always pin to an exact version. Upstream patch releases occasionally introduce schema changes that need testing.
@@ -231,6 +275,24 @@ Don't add a `commands/` directory. The legacy commands/ format is deprecated in 
 - Don't generate emojis in skills, README, or commit messages unless explicitly requested. The user's CLAUDE.md preference is to avoid emoji.
 
 - Don't autonomously create new GitHub repos, push to public visibility, or send messages to upstream maintainers without explicit user confirmation. PR creation, issue filing, and repo public-private settings all require an explicit instruction from the user.
+
+- Don't bundle other plugins' MCP tools into Scribe. Cross-plugin chaining happens via prose hints and Claude's natural skill composition, not by importing or invoking other plugins' tool namespaces directly. If a workflow needs ClickUp/Slack/etc., reference those plugins by name in the prose, never call their tools directly.
+
+## Future work
+
+Items flagged during the v1.0 design conversation that are not in v1.0 scope. Full context in the spec at `docs/superpowers/specs/2026-05-15-workspace-suite-expansion-design.md`.
+
+- **Meta-orchestration plugin** - separate plugin composing Scribe + ClickUp + Spiffy + AC Builder + Slack into cross-system workflows. Concept doc at `/Users/juliandickie/code/plugin-dev/docs/2026-05-15-meta-orchestrator-concept.md`.
+
+- **Per-skill telemetry** - count workflow invocations to inform v1.1 priorities. Requires opt-in instrumentation.
+
+- **Workflow templates as upstream feature** - propose to taylorwilsdon as a workspace-mcp capability if the workflow pattern proves broadly useful.
+
+- **`--permissions` granular control as setup option** - in v1.0 documented as advanced override only. v1.1 could add a `/scribe:permissions` command for interactive setup.
+
+- **AppScript and Search service skills** - tools enabled at manifest level but no dedicated service skill yet. Add in v1.1 if usage warrants.
+
+- **Optional GitHub Actions weekly upstream-check** - `make check-upstream` covers manual cadence; automation deferred.
 
 ## Where to find more
 
