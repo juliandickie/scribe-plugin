@@ -1,6 +1,7 @@
 ---
 description: Walk through first-run Google Cloud Project setup and OAuth consent for workspace-mcp.
 disable-model-invocation: true
+last-validated: 2026-05-15
 ---
 
 # Scribe - Auth Init

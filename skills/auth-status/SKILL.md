@@ -1,6 +1,7 @@
 ---
 description: List all Google accounts authenticated with workspace-mcp and show their token status.
 disable-model-invocation: true
+last-validated: 2026-05-15
 ---
 
 # Scribe - Auth Status

@@ -1,6 +1,7 @@
 ---
 description: Authenticate an additional Google account with workspace-mcp so multiple accounts can be used interchangeably.
 disable-model-invocation: true
+last-validated: 2026-05-15
 ---
 
 # Scribe - Auth Add
