@@ -8,7 +8,7 @@ last-validated: 2026-05-15
 
 Guide the user through the one-time setup to authenticate workspace-mcp against their Google account.
 
-This skill is the prerequisite for `/scribe:auth-add` and `/scribe:push`. After completing this skill, Claude Code can read and write Google Drive, Docs, Gmail, and Calendar on behalf of the authenticated account.
+This skill is the prerequisite for `/scribe:auth-add` and `/scribe:push`. After completing this skill, Claude Code can read and write across the full Google Workspace suite enabled in the plugin manifest - Gmail, Calendar, Drive, Docs, Sheets, Slides, Contacts, Tasks, Forms, Chat, AppScript, and Search - on behalf of the authenticated account.
 
 ## Prerequisites - Install uvx
 
@@ -174,7 +174,11 @@ If the user hits any other friction, walk them through it. Refer them to the plu
 
 ## Restricting scopes (advanced)
 
-By default the plugin enables all 12 tool groups and the OAuth consent screen requests scopes for each. Users who want narrower OAuth scopes can override `--tools` with `--permissions` in their per-project `.claude/settings.json` MCP env config:
+By default the plugin enables all 12 tool groups and the OAuth consent screen requests scopes for each. Users who want narrower OAuth scopes can override the manifest's `--tools` arguments with `--permissions` in their per-project `.claude/settings.json`.
+
+**Important:** `--permissions` and `--tools` are mutually exclusive in `workspace-mcp` - passing both causes the server to fail to start. Your `args` array in `.claude/settings.json` MUST fully replace the manifest's args (not merge), and MUST NOT include `--tools`.
+
+Example - replacing the manifest args entirely:
 
 ```json
 {
@@ -190,5 +194,7 @@ By default the plugin enables all 12 tool groups and the OAuth consent screen re
 ```
 
 Gmail permission levels are cumulative - `readonly` < `organize` < `drafts` < `send` < `full`. Other services accept `readonly` or `full`.
+
+If the server reports `Error: --permissions and --tools cannot be combined`, your settings.json args still contain `--tools`. Remove it.
 
 If you switch from `--tools` to `--permissions`, re-run `start_google_auth` so the consent screen reflects the narrower scope set.
