@@ -1,12 +1,12 @@
 # Scribe Plugin
 
-Context document for AI agents and contributors picking up this project in a new session. The README.md is for end users; this file is for whoever is editing the repo. Last refreshed 2026-05-08.
+Context document for AI agents and contributors picking up this project in a new session. The README.md is for end users; this file is for whoever is editing the repo. Last refreshed 2026-05-15.
 
 ## What this project is
 
 A Claude Code plugin that wraps [taylorwilsdon's `workspace-mcp`](https://github.com/taylorwilsdon/google_workspace_mcp) (Python, on PyPI). The plugin contributes -
 
-- Six skills (`skills/<name>/SKILL.md`) that teach Claude when and how to use the MCP tools, plus user-invokable slash-style helpers for OAuth setup, account switching, and pushing markdown into Drive.
+- 30 skills (`skills/<name>/SKILL.md`) organised in a three-layer architecture (orchestration router + 10 auto-activated service skills + 14 user-invokable workflow skills + 5 existing infra skills) that teach Claude when and how to use the MCP tools.
 
 - An MCP server declaration (`mcpServers` block in plugin.json) that uvx-pulls a pinned version of `workspace-mcp` from PyPI and pre-configures three env vars so the credential flow works out of the box.
 
@@ -349,8 +349,10 @@ If you're an AI agent picking this up cold -
 
 1. Read this file first (you're here).
 2. Skim `README.md` to understand the user-facing pitch.
-3. Skim the six SKILL.md files to understand the runtime behavior.
-4. Run `make orient` for a one-shot snapshot - validates manifests, shows recent local commits, lists published GitHub releases, confirms local plugin.json version matches the latest tag, lists open issues on this repo, and shows the state of the open upstream design discussion (taylorwilsdon issue #771).
+3. Read `skills/workspace/SKILL.md` (the orchestration router) to understand routing logic.
+4. Browse `docs/workflows.md` and `docs/services.md` for the full skill catalog without opening 30 files.
+5. Open individual skill files only when you need to modify a specific one.
+6. Run `make orient` for a one-shot snapshot - validates manifests, shows recent local commits, lists published GitHub releases, confirms local plugin.json version matches the latest tag, lists open issues on this repo, and shows the state of the open upstream design discussion (taylorwilsdon issue #771).
 
 If the user asks for a change, identify which layer it belongs to (plugin, upstream MCP, or AHPRA scripts) before writing code. The "Architecture" section above maps the territory.
 
