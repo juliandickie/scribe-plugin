@@ -1,208 +1,139 @@
 # Scribe
 
-**Claude Code writes directly to your Google Docs. No more copy-paste dance.**
+**Google Workspace orchestration for Claude Code. Multi-account, multi-service, all 12 Workspace tool groups, 14 named cross-service workflows.**
 
 ![Scribe hero](docs/images/hero.png)
 
 ---
 
-## The problem you keep solving the hard way
-
-You live in Google Docs. Your client reviews happen there. Your team comments happen there. Your finished content ships from there.
-
-But everything you write lives somewhere else first - in markdown, in your editor, in your Claude Code session. Getting it from "written" to "in the right Google Doc with the right formatting in the right tab" is grunt work that eats your production day -
-
-- Copy the file
-
-- Paste into Drive as markdown (hope the "convert" option is on today)
-
-- Click into the right tab (or remember to make one)
-
-- Compare against the source to catch missing sections
-
-- Repeat 96 times for a full client push
-
-Hours disappear into clipboard theatre. Client review slips a week because the docs aren't ready. You automate your markdown pipeline, your CI, your tests - but this one last mile stays stubbornly manual.
-
-![Before and after](docs/images/before-after.png)
-
-## The guide
-
-Scribe is a Claude Code plugin that gives your Claude session direct API-level access to Google Workspace. Once installed, Claude can -
-
-- Read any Google Doc (including tab structure and per-tab content)
-
-- Write markdown into any Doc, tab by tab, with correct formatting preserved
-
-- Create or update Drive folders and files
-
-- Search Gmail threads and read Calendar events
-
-It wraps [taylorwilsdon's `workspace-mcp`](https://github.com/taylorwilsdon/google_workspace_mcp) (PyPI), which now ships with the markdown-to-Google-Docs writer Scribe contributed via PR #727.
-
-## How it works
-
-![Architecture diagram](docs/images/architecture.png)
-
-Three layers, one install -
-
-1. **Your Claude Code session** issues a natural-language request ("update the Blog Article tab in the D01 doc with the latest markdown")
-
-2. **Scribe** matches the request to the right skill and routes the call to its MCP server
-
-3. **The MCP server** handles OAuth, calls Google's Drive + Docs + Gmail + Calendar APIs, and returns the result
-
-You never touch a browser tab. The markdown-to-Google-Doc conversion happens server-side with full fidelity - headings, bold and italic, lists, code blocks, blockquotes, links, all preserved. And because it is Claude writing the commands, you can speak to it naturally - no memorised CLI flags.
-
-## The plan - three commands to a working install
+**Version 1.0.0** | MIT licensed | Wraps [taylorwilsdon/google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp)
 
 ```bash
-# 1. Add this plugin's marketplace
 /plugin marketplace add juliandickie/scribe-plugin
-
-# 2. Install Scribe
 /plugin install scribe
-
-# 3. Guided OAuth setup
 /scribe:auth-init
 ```
 
-First MCP invocation takes a few seconds while `uvx` downloads the server from the fork. Every subsequent call is instant.
+## What you can do
 
-## Google Cloud setup - 5 minutes, one time
+- Run named workflows that span services - daily briefing, inbox triage, meeting prep, weekly wrap, and 10 more
 
-Before Scribe can talk to Google, you need your own OAuth client credentials. No shared client IDs - you own your quota, your consent screen, your trust boundary.
+- Compose Workspace operations dynamically from natural-language prompts - "check both my inboxes for anything urgent and create a summary doc"
 
-1. Visit [console.cloud.google.com](https://console.cloud.google.com) and sign in with your Google account
+- Manage multiple Google accounts in one Claude session - personal Gmail and business Workspace, agency client and own org, all switchable per call
 
-2. Create a new project (suggest the name `scribe-personal`)
+- Push markdown into Drive or specific Doc tabs with high fidelity (the original Scribe v0.x feature, still here and improved)
 
-3. Under **APIs & Services > Library**, enable -
+## The problem v1.0 solves
 
-    - **Google Drive API** (mandatory)
+You live in Google Workspace. Email, calendar, docs, sheets, slides, contacts, tasks - all of it. Most of your day is shuffling between them.
 
-    - **Google Docs API** (mandatory)
+Scribe v0.x focused on one piece of that grunt work - getting markdown into the right Doc with the right tab. v1.0 expands the scope to the whole Workspace surface, with named workflows for the patterns you'd otherwise hand-stitch every time.
 
-    - **Gmail API** (optional, for mail operations)
+![Before and after](docs/images/before-after.png)
 
-    - **Google Calendar API** (optional, for calendar reads)
+## Workflows
 
-4. Under **APIs & Services > OAuth consent screen**, configure a minimal consent screen
+14 named slash commands that compose multi-service operations. Each accepts natural-language invocation OR explicit flags.
 
-    - User type - External
+- `/scribe:daily-briefing` - inbox + calendar morning sweep across all accounts
 
-    - App name - anything (e.g., "Scribe personal")
+- `/scribe:inbox-triage` - categorise unread, label, draft replies across inboxes
 
-    - Support and developer email - your own
+- `/scribe:support-scan` - scan support inbox, log to tracking sheet, draft responses
 
-5. Under **APIs & Services > Credentials**, click **Create Credentials > OAuth client ID**
+- `/scribe:meeting-prep` - pull meeting + related emails into a structured prep doc
 
-    - Application type - **Desktop app**
+- `/scribe:thread-to-doc` - convert email thread to Doc, save attachments to client folder
 
-    - Name - "Scribe desktop client"
+- `/scribe:client-digest` - aggregate emails + calendar + Drive activity for one contact
 
-6. Download the JSON. Save to `~/.workspace-mcp/oauth_client.json`.
+- `/scribe:weekly-wrap` - compile a week's activity across services into a summary doc
 
-7. Run `/scribe:auth-init` in Claude Code and follow the prompts.
+- `/scribe:follow-up-tracker` - find sent emails with no reply, draft follow-ups
 
-Your credentials never leave your machine. Tokens are stored encrypted at `~/.workspace-mcp/`.
+- `/scribe:contact-onboard` - bootstrap Drive folder + Contact + Sheet row + welcome email
 
-## Slash command reference
+- `/scribe:doc-chase` - find shared docs with no review activity, nudge reviewers
 
-| Command | What it does |
-|---|---|
-| `/scribe:auth-init` | Guided first-run Google Cloud and OAuth setup |
-| `/scribe:auth-add` | Authenticate an additional Google account |
-| `/scribe:auth-status` | List authenticated accounts and token validity |
-| `/scribe:push` | Push a markdown file to Drive as a new or updated Doc |
-| `/scribe:client-resolve` | Resolve a CLIENT-ID (AHPRA-style repos) to account and folder |
+- `/scribe:attach-vault` - organise email attachments into Drive by sender or project
 
-## File-path sandbox - read this before your first push
+- `/scribe:event-recap` - post-meeting notes doc + follow-up email draft
 
-The MCP server enforces a directory sandbox via `ALLOWED_FILE_DIRS`. The plugin's manifest defaults this to `~/.workspace-mcp/attachments`. **Files outside that directory cannot be uploaded via `import_to_google_doc`.**
+- `/scribe:smart-reply` - draft a contextual email using prior history with the contact
 
-Two ways to handle this -
+- `/scribe:educator-setup` - bootstrap an educator's Drive folder structure and welcome
 
-- **Per-session copy** (simple). For ad-hoc pushes, copy the source file into `~/.workspace-mcp/attachments/scribe-session/` first. The `/scribe:push` skill walks Claude through this automatically.
+Detailed reference - [docs/workflows.md](docs/workflows.md).
 
-- **Persistent override** (for projects with stable source directories). Set `ALLOWED_FILE_DIRS` in `~/.claude/settings.json` to additionally include your project root -
+## Services
 
-   ```json
-   "mcpServers": {
-     "scribe": {
-       "env": {
-         "ALLOWED_FILE_DIRS": "${HOME}/.workspace-mcp/attachments:${HOME}/code/my-project"
-       }
-     }
-   }
-   ```
+10 service skills auto-activate when their service is in scope. They teach Claude the full MCP tool API for each Google service.
 
-   Multiple paths colon-separated on macOS/Linux, semicolon-separated on Windows.
+- **gmail** - search, read, draft, send, label management
 
-**Important** - symlinks do NOT bypass the sandbox. The server resolves symlinks via `realpath()` before the check. Either copy the file or extend `ALLOWED_FILE_DIRS`.
+- **calendar** - events, free/busy, focus time, OOO
 
-## Multi-account support
+- **docs** - tabs, batch updates, find/replace, structure
 
-Scribe handles multiple authenticated accounts concurrently when they all sit inside the SAME Google Workspace organisation (or all use personal Gmail). Pass `user_google_email` as a parameter to any MCP tool call, set `USER_GOOGLE_EMAIL` in your shell session, or store it in a project's config file.
+- **drive** - folders, files, sharing, permissions, public access
 
-### Multi-org / cross-Workspace setup (different story)
+- **sheets** - ranges, formulas, append rows, table creation
 
-If you have accounts across **separate Google Workspace organisations** (e.g. one for your agency, one for an institute or client engagement), the OAuth client model gets in the way. Each org's Internal-type OAuth client only accepts identities from the OWNING Workspace, so you need ONE OAuth client per org.
+- **slides** - presentations, slide content updates
 
-The plugin supports this via a symlink-swap pattern. See [docs/multi-org-setup.md](docs/multi-org-setup.md) for the step-by-step setup, including a ready-to-use `switch.sh` helper. Summary -
+- **contacts** - lookup by name or email, create contacts
 
-1. Create a separate Google Cloud project + OAuth client inside EACH Workspace org
+- **tasks** - Google Tasks lists and items
 
-2. Save each `client_secret_*.json` to `~/.workspace-mcp/`
+- **forms** - read responses, create forms
 
-3. Symlink the active one to `~/.workspace-mcp/oauth_client.json`
+- **chat** - send and read Google Chat messages
 
-4. Use `switch.sh <org>` to flip the symlink when changing context
+Detailed reference - [docs/services.md](docs/services.md).
 
-Token caches are per-account, so authenticating once per org means you can push to either org's Drive without re-consenting.
+## Architecture
 
-## Troubleshooting
+Three-layer skill model:
 
-**"OAuth client credentials not found" (during auth flow)** - your `oauth_client.json` is not at `~/.workspace-mcp/oauth_client.json`. Run `/scribe:auth-init` to set it up correctly. Don't trust the error message's path suggestion (it points at a uv cache directory that gets blown away on plugin updates).
+![Architecture](docs/images/architecture.png)
 
-**"No cached token"** - run `/scribe:auth-init` (if first install) or `/scribe:auth-add EMAIL` (if you've authenticated some accounts but not the one this call needs).
+1. **Orchestration router** (`workspace/SKILL.md`) - auto-loads on every Workspace request. Routes between accounts, services, and workflows.
 
-**"Invalid grant" or "unauthorized"** - OAuth consent may have been revoked at [myaccount.google.com](https://myaccount.google.com/permissions). Re-run `/scribe:auth-init` to re-consent.
+2. **Service skills** (10 files) - auto-load when their specific service is in scope. Teach the MCP tool API for that service.
 
-**Token expired** - the MCP server auto-refreshes on next call. If refresh fails (rare), re-authenticate via `/scribe:auth-init`.
+3. **Workflow skills** (14 files) - user-invoked via slash command. Each is a complete recipe for one cross-service operation.
 
-**API quota exceeded** - Google's default quota is 60 requests per minute per user. Heavy batch operations may need you to request a quota increase on your Cloud Console.
+This keeps each skill focused (under 500 lines), avoids token bloat, and lets the marketplace user pick what to invoke.
 
-**First install is slow** - the `mcpServers` declaration in `plugin.json` uses `uvx` to pull the server from GitHub on first invocation. Subsequent calls use the cached install and are near-instant.
+## Multi-org and multi-account
 
-**Want to pre-install instead of waiting for first use** - an optional convenience script is at `hooks/post-install.sh` in the plugin's install directory. Run it manually to eagerly pip-install the server.
+Scribe handles multiple OAuth clients (one per Workspace org if you need cross-org access). The token cache stores credentials per email; multi-account loops are first-class in the orchestration router. See [docs/multi-org-setup.md](docs/multi-org-setup.md) for the symlink-swap pattern.
 
-**"Path is outside permitted directories" when pushing a file** - your source file is outside the sandbox. See "File-path sandbox" section above. Symlinks don't bypass it.
+## Setup
 
-**`HttpError 500` from Drive on a single file in a batch** - Google's Drive upload endpoint occasionally returns a transient 500. Re-run the failed file - the second attempt almost always succeeds. Auto-retry is on the upstream fork's roadmap.
+The first-run flow walks through Google Cloud Project setup and OAuth (5-10 minutes once per Workspace org):
 
-**Slash command not found** - the auth skills (`/scribe:auth-init`, `/scribe:auth-add`, `/scribe:auth-status`, `/scribe:client-resolve`) are user-invokable only - they have `disable-model-invocation: true` in their frontmatter so Claude won't auto-trigger them. Type the slash command yourself; if it doesn't appear, run `/plugin install scribe` to confirm the plugin is loaded.
+```bash
+/scribe:auth-init      # one-time per org
+/scribe:auth-add EMAIL # add another account to the token cache
+/scribe:auth-status    # list authenticated accounts
+```
 
-## What Scribe enables
+After that, just speak naturally - "check my inbox for anything urgent today" - or invoke a named workflow.
 
-Real examples from production use of the underlying fork -
+## Customisation
 
-- **Agency batch content push** - one agency populates 12 condition documents × 8 content tabs each (96 tabs) for a clinic client in under 4 minutes, end-to-end. The equivalent browser-paste workflow used to take close to an hour.
+- `ALLOWED_FILE_DIRS` env var in your `.claude/settings.json` MCP config can extend the upload sandbox beyond `~/.workspace-mcp/attachments`.
 
-- **In-session edits** - "update the second paragraph of the Pricing page to reflect the new numbers" works as a one-shot in Claude Code. No context switch to a browser.
+- `--permissions SERVICE:LEVEL` override (in place of `--tools`) lets you restrict OAuth scopes per service. See `skills/auth-init/SKILL.md` "Restricting scopes (advanced)" section.
 
-- **Read-and-reason** - "summarise the client comments on the Services doc and group them by theme" turns a tedious review into a one-request answer.
-
-## Source
-
-Scribe wraps [taylorwilsdon/google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp), pulled via uvx from a tracked fork branch. The markdown-writer capability that powers `manage_doc_tab populate_from_markdown` was contributed via [PR #727](https://github.com/taylorwilsdon/google_workspace_mcp/pull/727) (merged 2026-04-26) - merged with a bonus refactor by Taylor that consolidated four tab tools into the single action-based `manage_doc_tab` you see today.
-
-Issues, PRs, and feature requests for the underlying MCP server to [taylorwilsdon's repo](https://github.com/taylorwilsdon/google_workspace_mcp). Issues specific to this plugin (skills, slash commands, install flow) to [this repo](https://github.com/juliandickie/scribe-plugin).
+- Workflow skills are independent files - fork the repo and edit any to suit your workflow needs.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT.
 
----
+## Credits
 
-Built by [Julian Dickie](https://github.com/juliandickie) for agencies that ship content faster than their tooling should allow.
+Wraps [`workspace-mcp`](https://github.com/taylorwilsdon/google_workspace_mcp) by [@taylorwilsdon](https://github.com/taylorwilsdon). The breadth of Scribe v1.0 is possible because of his work on the underlying MCP server.

@@ -1,6 +1,6 @@
 {
   "name": "scribe-marketplace",
-  "description": "Scribe - Google Workspace automation for Claude Code. Push markdown to Drive, read and update Doc tabs, multi-account OAuth. Wraps a fork of taylorwilsdon/google_workspace_mcp with a high-fidelity markdown-to-Google-Docs writer.",
+  "description": "Scribe - Google Workspace orchestration for Claude Code. Multi-account access to the full Workspace suite with 14 named cross-service workflows.",
   "owner": {
     "name": "Julian Dickie",
     "url": "https://github.com/juliandickie"
@@ -8,8 +8,8 @@
   "plugins": [
     {
       "name": "scribe",
-      "description": "Google Workspace automation skills for Claude Code. Bundles taylorwilsdon's workspace-mcp server with skills for OAuth setup, multi-account switching, and direct push of markdown into Drive folders or specific Doc tabs via the manage_doc_tab populate_from_markdown action.",
-      "version": "0.3.1",
+      "description": "Google Workspace orchestration for Claude Code. Multi-account access to Gmail, Calendar, Drive, Docs, Sheets, Slides, Contacts, Tasks, Forms, and Chat. Ships 14 cross-service workflow commands plus 10 service skills. Wraps taylorwilsdon/google_workspace_mcp.",
+      "version": "1.0.0",
       "source": "./",
       "author": {
         "name": "Julian Dickie",
@@ -23,6 +23,15 @@
         "drive",
         "docs",
         "gmail",
+        "calendar",
+        "sheets",
+        "slides",
+        "contacts",
+        "tasks",
+        "forms",
+        "chat",
+        "workflows",
+        "automation",
         "mcp",
         "oauth",
         "scribe"

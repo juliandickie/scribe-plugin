@@ -1,13 +1,14 @@
 ---
 description: Walk through first-run Google Cloud Project setup and OAuth consent for workspace-mcp.
 disable-model-invocation: true
+last-validated: 2026-05-15
 ---
 
 # Scribe - Auth Init
 
 Guide the user through the one-time setup to authenticate workspace-mcp against their Google account.
 
-This skill is the prerequisite for `/scribe:auth-add` and `/scribe:push`. After completing this skill, Claude Code can read and write Google Drive, Docs, Gmail, and Calendar on behalf of the authenticated account.
+This skill is the prerequisite for `/scribe:auth-add` and `/scribe:push`. After completing this skill, Claude Code can read and write across the full Google Workspace suite enabled in the plugin manifest - Gmail, Calendar, Drive, Docs, Sheets, Slides, Contacts, Tasks, Forms, Chat, AppScript, and Search - on behalf of the authenticated account.
 
 ## Prerequisites - Install uvx
 
@@ -42,15 +43,37 @@ Suggest project name `scribe-personal` for personal use, or `scribe-{org}` if se
 
 ## 2. Enable required APIs
 
-Under **APIs & Services > Library**, enable -
+Under **APIs & Services > Library**, enable the APIs the user needs. For the full Scribe suite, enable all of these. For a minimal install, enable only the first two and add the others later as the workflows you want require them.
 
-- **Google Drive API** (mandatory)
+**Required (mandatory for the plugin to start):**
 
-- **Google Docs API** (mandatory)
+- **Google Drive API**
 
-- **Gmail API** (optional, only if the user wants Gmail access)
+- **Google Docs API**
 
-- **Google Calendar API** (optional, only if the user wants Calendar access)
+**Strongly recommended (most workflow skills depend on these):**
+
+- **Gmail API**
+
+- **Google Calendar API**
+
+- **Google Sheets API**
+
+- **Google Slides API**
+
+**Optional (enable to unlock specific workflows):**
+
+- **People API** (Contacts)
+
+- **Google Tasks API**
+
+- **Google Forms API**
+
+- **Google Chat API**
+
+- **Apps Script API** (advanced - rarely needed)
+
+The plugin's MCP server requests scopes for all enabled APIs on first OAuth. If a user later sees a "Scope not authorized" error for a specific service, they need to enable that API in Cloud Console and re-run `start_google_auth` for that service.
 
 ## 3. Configure the OAuth consent screen
 
@@ -103,7 +126,7 @@ Ask the user which Google email address they want to authenticate. Then call the
 
 - `user_google_email` - the email the user provided
 
-- `service_name` - use `"drive"` (this also covers Docs scope; calling once is sufficient for both Drive and Docs access)
+- `service_name` - use `"drive"` for the initial setup. This authorises the default scope set the server requests, which covers Drive, Docs, Gmail, Calendar, Sheets, Slides, and most other services in one consent flow. If you later see a "Scope not authorized" error for a specific service, re-run `start_google_auth` with that service name (e.g. `"contacts"`, `"tasks"`, `"forms"`, `"chat"`).
 
 The tool returns a Google authorization URL. Present it to the user as a clickable link and instruct them to -
 
@@ -139,7 +162,7 @@ If the user has multiple Google Workspace orgs (e.g. one for agency, one for ins
 
 - "Access blocked: This app's request is invalid" - usually means the OAuth consent screen was not fully configured (missing app name or, for External apps, the authenticating account is not listed as a test user). Go back to Step 3.
 
-- "Missing required argument: service_name" - the `start_google_auth` tool requires both `user_google_email` and `service_name`. Valid values for `service_name` are `drive`, `docs`, `gmail`, `calendar`. Use `drive` for the initial setup.
+- "Missing required argument: service_name" - the `start_google_auth` tool requires both `user_google_email` and `service_name`. Valid values include `drive`, `docs`, `gmail`, `calendar`, `sheets`, `slides`, `contacts`, `tasks`, `forms`, `chat`. Use `drive` for the initial setup; it covers the broad scope set.
 
 - **Windows - credentials or client file not found after setup:** The plugin uses `${HOME}` to locate files. On some Windows systems `HOME` is not set as a standard environment variable. If credential or client-file path errors persist after placing the JSON correctly, add these overrides to your project `.claude/settings.json` under `mcpServers.scribe.env`, replacing `C:\Users\YourName` with your actual home directory path:
   ```json
@@ -148,3 +171,30 @@ If the user has multiple Google Workspace orgs (e.g. one for agency, one for ins
   ```
 
 If the user hits any other friction, walk them through it. Refer them to the plugin README for screenshots and the multi-org appendix.
+
+## Restricting scopes (advanced)
+
+By default the plugin enables all 12 tool groups and the OAuth consent screen requests scopes for each. Users who want narrower OAuth scopes can override the manifest's `--tools` arguments with `--permissions` in their per-project `.claude/settings.json`.
+
+**Important:** `--permissions` and `--tools` are mutually exclusive in `workspace-mcp` - passing both causes the server to fail to start. Your `args` array in `.claude/settings.json` MUST fully replace the manifest's args (not merge), and MUST NOT include `--tools`.
+
+Example - replacing the manifest args entirely:
+
+```json
+{
+  "mcpServers": {
+    "scribe": {
+      "args": [
+        "workspace-mcp@1.20.4",
+        "--permissions", "gmail:readonly", "drive:full", "docs:full"
+      ]
+    }
+  }
+}
+```
+
+Gmail permission levels are cumulative - `readonly` < `organize` < `drafts` < `send` < `full`. Other services accept `readonly` or `full`.
+
+If the server reports `Error: --permissions and --tools cannot be combined`, your settings.json args still contain `--tools`. Remove it.
+
+If you switch from `--tools` to `--permissions`, re-run `start_google_auth` so the consent screen reflects the narrower scope set.

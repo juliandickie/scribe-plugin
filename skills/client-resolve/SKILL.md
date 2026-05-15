@@ -1,6 +1,7 @@
 ---
 description: Resolve a CLIENT-ID (AHPRA-style repo convention) to its Google account email and Drive folder ID from the client's profile.md frontmatter.
 disable-model-invocation: true
+last-validated: 2026-05-15
 ---
 
 # Scribe - Client Resolve

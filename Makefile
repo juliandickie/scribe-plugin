@@ -1,7 +1,7 @@
 # Scribe plugin maintenance targets.
 # Run `make help` to see what's available.
 
-.PHONY: help validate publish icons clean release-notes orient
+.PHONY: help validate publish icons clean release-notes orient check-upstream
 
 # Override on the command line, e.g. make publish VERSION=0.2.1
 VERSION ?=
@@ -12,11 +12,25 @@ help: ## Show available targets and what they do
 validate: ## Validate manifests parse and skill structure is intact
 	@python3 -m json.tool .claude-plugin/plugin.json > /dev/null && echo "  plugin.json - valid JSON"
 	@python3 -m json.tool .claude-plugin/marketplace.json > /dev/null && echo "  marketplace.json - valid JSON"
-	@for skill in workspace auth-init auth-add auth-status push client-resolve; do \
+	@for skill in workspace auth-init auth-add auth-status push client-resolve \
+	              gmail calendar sheets slides docs drive contacts tasks forms chat \
+	              daily-briefing inbox-triage support-scan meeting-prep thread-to-doc \
+	              client-digest weekly-wrap follow-up-tracker contact-onboard doc-chase \
+	              attach-vault event-recap smart-reply educator-setup; do \
 		test -f skills/$$skill/SKILL.md && echo "  skills/$$skill/SKILL.md - present" || (echo "  MISSING - skills/$$skill/SKILL.md"; exit 1); \
 	done
 	@grep -q "name" .claude-plugin/plugin.json && echo "  plugin name field - present"
 	@grep -q "mcpServers" .claude-plugin/plugin.json && echo "  mcpServers - declared"
+
+check-upstream: ## Compare pinned workspace-mcp version against latest PyPI release
+	@current=$$(jq -r '.mcpServers.scribe.args[0]' .claude-plugin/plugin.json | sed 's/workspace-mcp@//'); \
+	latest=$$(curl -s https://pypi.org/pypi/workspace-mcp/json | jq -r '.info.version'); \
+	if [ "$$current" = "$$latest" ]; then \
+		echo "PASS - current pin $$current matches latest PyPI release"; \
+	else \
+		echo "OUTDATED - current pin $$current, latest is $$latest"; \
+		echo "Review changelog at https://github.com/taylorwilsdon/google_workspace_mcp/releases"; \
+	fi
 
 publish: ## Bump version, commit, tag, push, cut GH release. Usage - make publish VERSION=0.2.1
 	@if [ -z "$(VERSION)" ]; then \

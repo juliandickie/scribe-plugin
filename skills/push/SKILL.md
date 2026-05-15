@@ -1,5 +1,6 @@
 ---
 description: Push a local markdown file to Google Drive as a new or updated Google Doc. Use when the user asks to push markdown to Drive, update a Doc tab with markdown content, or sync a markdown file to a specific Google Doc.
+last-validated: 2026-05-15
 ---
 
 # Scribe - Push
