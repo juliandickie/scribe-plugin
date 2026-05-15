@@ -82,17 +82,9 @@ Returns: ordered list of messages in the thread.
 
 ### get_gmail_threads_content_batch
 
-Batch fetch multiple threads.
+Batch fetch multiple threads by IDs.
 
-### search_gmail_threads
-
-Thread-level search.
-
-Parameters:
-
-- `query` (Gmail query syntax)
-
-- `user_google_email`
+Note: there is no dedicated thread-level search tool. To find threads, use `search_gmail_messages` (results include `thread_id`) and then call `get_gmail_thread_content` or `get_gmail_threads_content_batch` to fetch the full thread content for the IDs you care about.
 
 ### get_gmail_attachment_content
 
@@ -259,15 +251,21 @@ Create, update, or delete an event.
 
 Parameters:
 
-- `action` - `"create"`, `"update"`, or `"delete"`
+- `action` - `"create"`, `"update"`, `"delete"`, or `"rsvp"`
 
-- `event_id` - required for update/delete
+- `event_id` - required for update, delete, and rsvp
 
-- Event fields: `summary`, `start`, `end`, `attendees`, `description`, `location`
+- Event fields: `summary`, `start_time`, `end_time`, `attendees`, `description`, `location`, `timezone`, etc.
 
-- `calendar_id`
+- `response` - for `rsvp` action only: `"accepted"`, `"declined"`, `"tentative"`, `"needsAction"`
+
+- `send_updates` - `"all"` (default), `"externalOnly"`, or `"none"` to control notification emails
+
+- `calendar_id` (defaults to `"primary"`)
 
 - `user_google_email`
+
+Note: `manage_event` does NOT support a `"read"` action. To read a specific event by ID, use `get_events` with `event_id=<id>` instead.
 
 ### query_freebusy
 
@@ -331,7 +329,7 @@ Read or set OOO auto-reply.
 
 ### Multi-account day view
 
-1. `list_authenticated_accounts` to enumerate accounts.
+1. Enumerate authenticated accounts by scanning `~/.workspace-mcp/credentials/*.json` filenames (see workspace/SKILL.md "Enumerating authenticated accounts").
 
 2. Per account, `get_events` for the day.
 
@@ -347,7 +345,7 @@ Read or set OOO auto-reply.
 
 - `query_freebusy` returns busy intervals, not free intervals. Compute free = window minus busy.
 
-- Attendees added in `manage_event` get an automatic invite email. To suppress, the upstream tool may have a flag; check current docs.
+- Attendees added in `manage_event` get an automatic invite email by default. To control this, pass `send_updates` - `"all"` (default), `"externalOnly"` (only external attendees notified), or `"none"` (no emails sent). Useful when batch-creating internal-only events or syncing existing schedules.
 
 ## Account selection
 
@@ -603,10 +601,6 @@ Read file content for supported types.
 
 Get a download URL for a file.
 
-### read_file_content / download_file_content
-
-Lower-level read operations.
-
 ### create_drive_folder
 
 Create a folder.
@@ -659,13 +653,11 @@ Read permissions; check whether a file is publicly accessible.
 
 Get a shareable URL for a file.
 
-### get_file_metadata / get_file_permissions
+### import_to_google_doc
 
-Inspect metadata and permissions.
+Convert and import a local file as a new Google Doc.
 
-### search_files / list_recent_files
-
-Variants of search and list.
+Parameters: `file_path` (sandbox-bound to `~/.workspace-mcp/attachments`), `source_format`, `parent_folder_id` (optional), `user_google_email`. See `skills/push/SKILL.md` for the sandbox auto-copy decision tree.
 
 ## Common patterns
 
@@ -722,7 +714,7 @@ This skill wraps `workspace-mcp` tools for Google Drive. Upstream issues go to h
 
 # Scribe - Sheets
 
-Enables Claude to read and write Google Sheets - ranges, individual cells, full sheets, formulas, and structured data tables.
+Enables Claude to read and write Google Sheets - ranges, individual cells, full sheets, formulas, structured data tables, and formatting.
 
 ## When to use
 
@@ -730,93 +722,101 @@ Use this skill when the user's request involves -
 
 - Reading data from a specific Sheet or range
 
-- Appending rows to a tracking sheet
+- Appending rows to a tracking sheet (using a structured table)
 
 - Updating cells with computed values or formulas
 
-- Creating new sheets or duplicating templates
+- Creating new spreadsheets or sheets (tabs)
 
-- Exporting structured data into a Sheet
+- Formatting cells, ranges, or applying conditional formatting
+
+- Listing spreadsheets, sheets, or tables
 
 ## MCP tool reference
 
-The exact tool names exposed for Sheets depend on the workspace-mcp version. At runtime, inspect the available MCP tools panel for the current set. The typical operations exposed are:
+The following tools are exposed by workspace-mcp@1.20.4 for Sheets. Pass `user_google_email` on every call.
 
-### read_range / get_sheet_values
+### list_spreadsheets
 
-Return cell values for an A1-notated range.
+List spreadsheets visible to the user (paginates Drive for Sheet-type files).
 
-Parameters:
+### get_spreadsheet_info
 
-- `spreadsheet_id`
+Get metadata for a spreadsheet (title, sheets list with IDs, named ranges).
 
-- `range` - A1 notation, e.g. `"Sheet1!A1:C10"`
+Parameters: `spreadsheet_id`, `user_google_email`.
 
-- `user_google_email`
+### read_sheet_values
+
+Read cell values for an A1-notated range.
+
+Parameters: `spreadsheet_id`, `range` (e.g. `"Sheet1!A1:C10"`), `user_google_email`.
 
 Returns: 2D array of cell values.
 
-### write_range / update_sheet_values
+### modify_sheet_values
 
-Overwrite cell values for a range.
+Write cell values for a range. Supports overwrite and append modes.
 
-Parameters:
+Parameters: `spreadsheet_id`, `range`, `values` (2D array), `user_google_email`, and a mode/option to control overwrite vs. append.
 
-- `spreadsheet_id`
+### format_sheet_range
 
-- `range`
+Apply formatting (font, color, borders, number formats) to a range.
 
-- `values[][]` - 2D array
+### manage_conditional_formatting
 
-- `user_google_email`
-
-### append_row / append_values
-
-Add a new row at the bottom of the data region.
-
-Parameters:
-
-- `spreadsheet_id`
-
-- `sheet_name` (or range with sheet specified)
-
-- `values[]` - row contents
-
-- `user_google_email`
+Add, update, or remove conditional formatting rules.
 
 ### create_spreadsheet
 
 Create a new spreadsheet (new file in Drive).
 
-Parameters: `title`, `parent_folder_id` (optional), `user_google_email`.
+Parameters: `title`, optional `parent_folder_id`, `user_google_email`.
 
-### create_sheet / add_sheet
+### create_sheet
 
-Add a new tab (sheet) to an existing spreadsheet.
+Add a new sheet (tab) to an existing spreadsheet.
 
-### clear_range
+Parameters: `spreadsheet_id`, `title`, `user_google_email`.
 
-Empty cells without deleting the structure.
+### list_sheet_tables
 
-**At implementation time, verify the actual tool names by inspecting the MCP tools panel and update this section.** The patterns below describe the conceptual operations regardless of exact tool names.
+List structured tables defined within a spreadsheet (named tables, not raw data regions).
+
+### append_table_rows
+
+Append one or more rows to a structured table. This is the canonical pattern for tracking sheets where you want strict append semantics.
+
+Parameters: `spreadsheet_id`, `table_name` (or table reference), `rows[][]`, `user_google_email`.
+
+### resize_sheet_dimensions
+
+Resize rows or columns (e.g. set column widths).
+
+### move_sheet_rows
+
+Move rows within a sheet.
 
 ## Common patterns
 
-### Log a support inquiry
+### Log a support inquiry into a tracking table
 
-1. Read header row to confirm column layout (e.g. `range="Tracker!A1:F1"`).
+1. `list_sheet_tables` (or `get_spreadsheet_info`) to confirm the target table exists.
 
-2. Append row with `[timestamp, sender, subject, link_to_thread, classification, status]`.
+2. `append_table_rows` with `[timestamp, sender, subject, link_to_thread, classification, status]`.
+
+If the target sheet is not a structured table, use `modify_sheet_values` instead to write the row at the next empty row found via `read_sheet_values` on the relevant column.
 
 ### Read a config sheet
 
-1. Read named range like `Config!A1:B20`.
+1. `read_sheet_values` with `range="Config!A1:B20"`.
 
-2. Parse rows into key-value pairs.
+2. Parse rows into key-value pairs in prose.
 
 ### Bulk update
 
-- Prefer batched range writes over per-cell calls for performance. One write to a 10x10 range is much faster than 100 individual cell writes.
+- Prefer batched range writes via `modify_sheet_values` over per-cell calls. One write to a 10x10 range is much faster than 100 individual cell writes.
 
 ## Gotchas
 
@@ -826,17 +826,17 @@ Empty cells without deleting the structure.
 
 - Sheet IDs (`gid` in URLs) are different from spreadsheet IDs. The spreadsheet ID is the long random string in the URL; the sheet ID is the small numeric `gid` parameter.
 
-- Append-row finds the first empty row in a sheet, not necessarily after the last data row. If a sheet has gaps, append may slot into a gap. For strict append-at-end behaviour, read the last-row index first and write to that row + 1.
+- `append_table_rows` requires a structured table. If the sheet is just raw data without a defined table, use `modify_sheet_values` and compute the target row manually. The structured-table path is more robust for tracking sheets created specifically for logging.
 
-- Date and time values are returned as serial numbers unless the column is formatted as date. Format the column or convert in-prose.
+- Date and time values are returned as serial numbers unless the column is formatted as date. Format via `format_sheet_range` or convert in prose.
 
 ## Account selection
 
-Pass `user_google_email` on every call. The full account selection logic lives in `skills/workspace/SKILL.md` under "Multi-account routing."
+Pass `user_google_email` on every call. See `skills/workspace/SKILL.md` "Multi-account routing" for the selection rules.
 
 ## Cross-service handoff
 
-When a request spans services (e.g. logging an email to a sheet), this skill's role ends after the sheet operation. The orchestration layer handles chaining to Gmail, Drive, etc.
+When a request spans services (e.g. logging an email to a sheet), this skill's role ends after the sheet operation. The orchestration layer in workspace/SKILL.md handles chaining to Gmail, Drive, etc.
 
 ## Source
 
@@ -847,7 +847,7 @@ This skill wraps `workspace-mcp` tools for Google Sheets. Upstream issues go to 
 
 # Scribe - Slides
 
-Enables Claude to read, create, and update Google Slides presentations - slide content, layout, and text.
+Enables Claude to read, create, and update Google Slides presentations. All structural updates flow through `batch_update_presentation` with a list of requests (mirroring the Google Slides API's batchUpdate pattern).
 
 ## When to use
 
@@ -861,59 +861,77 @@ Use this skill when the user's request involves -
 
 - Modifying text on specific slides
 
+- Getting thumbnails of specific slides
+
 ## MCP tool reference
 
-The exact tool names exposed for Slides depend on the workspace-mcp version. At runtime, inspect the available MCP tools panel for the current set. Typical operations:
-
-### read_presentation / get_presentation
-
-Returns all slide contents.
-
-Parameters: `presentation_id`, `user_google_email`.
+The following tools are exposed by workspace-mcp@1.20.4 for Slides. Pass `user_google_email` on every call.
 
 ### create_presentation
 
-Create a new presentation in Drive.
+Create a new presentation (new file in Drive).
 
-Parameters: `title`, `parent_folder_id` (optional), `user_google_email`.
+Parameters: `title`, optional `parent_folder_id`, `user_google_email`.
 
-### add_slide
+### get_presentation
 
-Add a slide to an existing presentation.
+Read a presentation's full structure - all pages (slides), all elements, layouts.
 
-Parameters: `presentation_id`, `layout` (e.g. `"TITLE"`, `"TITLE_AND_BODY"`), `index` (optional position), `user_google_email`.
+Parameters: `presentation_id`, `user_google_email`.
 
-### update_slide_content
+### batch_update_presentation
 
-Modify text or elements on a specific slide.
+The workhorse mutation tool. Accepts a list of update requests. All slide creation, deletion, text edits, image inserts, layout changes go through this.
 
-Parameters: `presentation_id`, `slide_id`, content updates, `user_google_email`.
+Parameters:
 
-**At implementation time, verify the actual tool names by inspecting the MCP tools panel and update this section.**
+- `presentation_id`
+
+- `requests[]` - list of update request objects. Each follows the Google Slides API batchUpdate shape (e.g. `{"createSlide": {...}}`, `{"insertText": {...}}`, `{"deleteObject": {...}}`).
+
+- `user_google_email`
+
+### get_page
+
+Read a single slide (page) by ID.
+
+### get_page_thumbnail
+
+Get a thumbnail image of a specific slide.
 
 ## Common patterns
 
 ### Generate a deck from an outline
 
-1. `create_presentation` with the deck title.
+1. `create_presentation` with the deck title - returns the new presentation ID and the default first slide ID.
 
-2. Per outline section, `add_slide` with the appropriate layout.
-
-3. `update_slide_content` to set title and body text per slide.
+2. `batch_update_presentation` with a request list that adds one slide per outline section. For each new slide, also include `insertText` requests to populate title and body placeholders. Batch them in one call where possible - it's atomic and faster.
 
 ### Read existing deck and summarise
 
-1. `read_presentation` to fetch all slides.
+1. `get_presentation` to fetch all slides.
 
-2. Surface slide titles and key text content as a structured summary.
+2. Walk the pages array; for each page surface its title and key text content as a structured summary.
+
+### Add a slide at a specific position
+
+1. `batch_update_presentation` with a `createSlide` request including `insertionIndex` and `slideLayoutReference`.
+
+### Replace text on a specific slide
+
+1. `batch_update_presentation` with a `replaceAllText` request scoped to the specific page object ID, or with `deleteText` + `insertText` requests targeting a specific element.
 
 ## Gotchas
 
-- Slides has rich layout primitives (text boxes, shapes, images). Don't assume a slide is just a title and bullets.
+- All structural changes flow through `batch_update_presentation`. There is NO separate `add_slide` or `update_slide_content` tool - those operations are individual request objects within a batchUpdate call.
 
-- Layouts are template-driven. Changing a slide's layout often requires understanding the master slide structure.
+- Layouts are template-driven. Use `slideLayoutReference` with predefined layout IDs (e.g. `TITLE_AND_BODY`, `TITLE`, `SECTION_HEADER`) when creating slides. Custom layouts have their own IDs visible in `get_presentation` output.
 
-- Slide IDs are different from page numbers. Always work with IDs returned from `read_presentation` or `add_slide`.
+- `batch_update_presentation` is atomic - if any request in the list fails, none are applied. Group operations that should succeed-or-fail together.
+
+- Slide IDs are different from indexes. The first slide is at index 0 but its object ID is a random string (or "p" prefix for default). Always use IDs from `get_presentation` rather than guessing.
+
+- Placeholders (title, body, etc.) have their own object IDs distinct from the slide's ID. To insert text into a title placeholder, target the placeholder's object ID, not the slide ID.
 
 ## Account selection
 
@@ -921,7 +939,7 @@ Pass `user_google_email` on every call. See `skills/workspace/SKILL.md` for acco
 
 ## Cross-service handoff
 
-When generating a deck from a Doc or other source, this skill handles the slide creation. The orchestration layer handles chaining to other services.
+When generating a deck from a Doc or other source, this skill handles the slide creation. The orchestration layer handles chaining to other services (e.g. reading the source Doc first).
 
 ## Source
 
@@ -932,7 +950,7 @@ This skill wraps `workspace-mcp` tools for Google Slides. Upstream issues go to 
 
 # Scribe - Contacts
 
-Enables Claude to read and create Google Contacts via the People API - useful for resolving names to emails, enriching contact info, and creating new contact entries.
+Enables Claude to read, create, search, and manage Google Contacts via the People API - useful for resolving names to emails, enriching contact info, creating new contact entries, and grouping contacts.
 
 ## When to use
 
@@ -942,41 +960,69 @@ Use this skill when the user's request involves -
 
 - Looking up by email to find their name and other metadata
 
-- Creating a new contact
+- Creating, updating, or deleting a contact entry
 
-- Listing contacts in a specific group
+- Listing contacts in a specific contact group
+
+- Bulk-managing many contacts at once
 
 ## MCP tool reference
 
-The exact tool names depend on the workspace-mcp version - inspect the MCP tools panel for the current set. Typical operations:
-
-### read_contact / get_contact
-
-Look up a contact by ID or email.
-
-Parameters: `contact_id` or `email`, `user_google_email`.
-
-Returns: contact metadata (name, email(s), phone, organisation, notes).
-
-### search_contacts
-
-Search by name or query.
-
-Parameters: `query`, `user_google_email`.
+The following tools are exposed by workspace-mcp@1.20.4 for Contacts. Pass `user_google_email` on every call. Mutations (create/update/delete) flow through `manage_contact` or `manage_contacts_batch` with action verbs.
 
 ### list_contacts
 
-List contacts.
+List the user's contacts.
 
-Parameters: `user_google_email`, optional pagination.
+Parameters: `user_google_email`, optional pagination, optional field mask.
 
-### create_contact
+### get_contact
 
-Create a new contact entry.
+Read a specific contact by resource name (returned from search/list as something like `people/c12345`).
 
-Parameters: `name`, `email`, optional fields (phone, organisation, notes), `user_google_email`.
+Parameters: `resource_name`, `user_google_email`, optional field mask.
 
-**At implementation time, verify the actual tool names by inspecting the MCP tools panel.**
+### search_contacts
+
+Search contacts by name, email, or other fields.
+
+Parameters: `query`, `user_google_email`.
+
+Returns: list of matching contacts with resource names.
+
+### manage_contact
+
+Create, update, or delete a single contact - action-based interface.
+
+Parameters:
+
+- `action` - `"create"`, `"update"`, or `"delete"`
+
+- `resource_name` - required for update/delete
+
+- Contact fields - `names`, `email_addresses`, `phone_numbers`, `organizations`, `biographies`, etc. (passed as structured data for create/update)
+
+- `user_google_email`
+
+### list_contact_groups
+
+List contact groups (labels/categories).
+
+### get_contact_group
+
+Read a single contact group, including member contacts.
+
+### manage_contact_group
+
+Create, update, or delete a contact group.
+
+Parameters: `action`, group fields, `user_google_email`.
+
+### manage_contacts_batch
+
+Apply create/update/delete to many contacts in a single batched call.
+
+Parameters: `action`, list of contact payloads (each with its own fields and, for update/delete, resource_name), `user_google_email`.
 
 ## Common patterns
 
@@ -984,25 +1030,37 @@ Parameters: `name`, `email`, optional fields (phone, organisation, notes), `user
 
 1. `search_contacts` with the name as query.
 
-2. Return the matching email(s). If multiple matches, prompt user to disambiguate.
+2. Inspect the results' `email_addresses` field. If multiple matches, prompt user to disambiguate.
 
 ### Enrich an email
 
-1. Given an email, `read_contact` (or search by email).
+1. `search_contacts` with the email as query (works because the API matches across fields).
 
-2. Surface name, organisation, phone if present.
+2. From the matching contact, surface name, organisation, phone numbers if present.
+
+### Create a new contact
+
+1. `manage_contact` with `action="create"`, populated `names`, `email_addresses`, and any other fields the user provided.
+
+2. The response includes the new contact's `resource_name`.
+
+### Add a contact to a group
+
+1. `manage_contact_group` (or specific membership operations exposed by upstream) - check `get_contact_group` for membership semantics in the current API surface.
 
 ## Gotchas
 
-- The People API distinguishes between contacts (people you've explicitly added) and "other contacts" (people you've emailed but not added). Both may be searchable.
+- The People API uses **resource names** like `people/c12345` for contact identifiers, not raw IDs. Always pass the full resource_name returned by list/search/get.
 
-- Workspace org contacts (directory) are separate from personal contacts. The API exposes both differently - some tools return one, some both.
+- The People API distinguishes between contacts (people you've explicitly added) and "other contacts" (people you've emailed but not added). `search_contacts` searches your saved contacts by default; "other contacts" may need a different field mask or call.
 
-- Display names can differ from primary email's display field. Treat name and email as separate identity facets.
+- Workspace org contacts (directory) are separate from personal contacts. Within an org, the directory is searchable via the same People API but the result set may differ depending on org settings.
+
+- All mutations route through `manage_contact` (or `manage_contacts_batch` for bulk). There is no separate `create_contact` or `delete_contact` tool.
 
 ## Account selection
 
-Pass `user_google_email` on every call. Note that contacts are per-account - a contact in julian@idd is not visible to julian@pro. If looking up across accounts, loop over accounts.
+Pass `user_google_email` on every call. Contacts are per-account - a contact saved under julian@idd is not visible to julian@pro. For cross-account lookups, loop over accounts using the credentials directory scan.
 
 ## Cross-service handoff
 
@@ -1017,7 +1075,7 @@ This skill wraps `workspace-mcp` tools for Google Contacts (People API). Upstrea
 
 # Scribe - Tasks
 
-Enables Claude to read, create, and complete items in Google Tasks - the lightweight to-do system separate from external PM tools.
+Enables Claude to read, create, and complete items in Google Tasks - the lightweight to-do system separate from external PM tools. All mutations flow through `manage_task` and `manage_task_list` with action verbs.
 
 ## When to use
 
@@ -1027,53 +1085,85 @@ Use this skill when the user's request involves -
 
 - Creating new tasks from email or doc content
 
-- Marking tasks complete
+- Marking tasks complete, updating, or deleting them
 
-- Managing or listing task lists
+- Listing or managing task lists
 
 ## MCP tool reference
 
-The exact tool names depend on the workspace-mcp version - inspect the MCP tools panel for the current set. Typical operations:
+The following tools are exposed by workspace-mcp@1.20.4 for Tasks. Pass `user_google_email` on every call.
 
 ### list_task_lists
 
-Enumerate the user's task lists.
+Enumerate the user's task lists. Returns each list's ID and title.
 
 Parameters: `user_google_email`.
 
-### read_tasks_in_list / get_tasks
+### get_task_list
 
-Read tasks in a specific list.
+Read metadata for a specific task list.
 
-Parameters: `task_list_id`, optional filters (`completed`, `due_before`), `user_google_email`.
+Parameters: `task_list_id`, `user_google_email`.
 
-### create_task
+### manage_task_list
 
-Create a new task.
+Create, update, or delete a task list.
+
+Parameters:
+
+- `action` - `"create"`, `"update"`, or `"delete"`
+
+- `task_list_id` - required for update/delete
+
+- `title` - required for create/update
+
+- `user_google_email`
+
+### list_tasks
+
+Read tasks within a list, with filters.
 
 Parameters:
 
 - `task_list_id`
 
-- `title`
+- `show_completed` (optional bool)
+
+- `show_hidden` (optional bool)
+
+- `due_min`, `due_max` (optional, RFC 3339)
+
+- `updated_min` (optional)
+
+- `user_google_email`
+
+### get_task
+
+Read a single task by ID.
+
+Parameters: `task_list_id`, `task_id`, `user_google_email`.
+
+### manage_task
+
+Create, update, or delete a task - action-based interface.
+
+Parameters:
+
+- `action` - `"create"`, `"update"`, or `"delete"`
+
+- `task_list_id`
+
+- `task_id` - required for update/delete
+
+- `title` - required for create
 
 - `notes` (optional)
 
 - `due` (optional, RFC 3339)
 
+- `status` - `"needsAction"` or `"completed"` (use this to mark complete via update)
+
 - `user_google_email`
-
-### update_task
-
-Update task fields - mark complete, change due date, edit title.
-
-Parameters: `task_list_id`, `task_id`, fields to update, `user_google_email`.
-
-### delete_task
-
-Delete a task.
-
-**At implementation time, verify the actual tool names by inspecting the MCP tools panel.**
 
 ## Common patterns
 
@@ -1081,27 +1171,35 @@ Delete a task.
 
 1. Read the doc content (use the docs skill).
 
-2. Parse action items.
+2. Parse action items from the text.
 
-3. `create_task` per item against the user's default task list.
+3. `list_task_lists` to find the target list. If none specified, use the user's default (first list).
+
+4. `manage_task` with `action="create"` per item.
 
 ### Daily task surfacing
 
 1. `list_task_lists` to find the default list.
 
-2. `read_tasks_in_list` filtered by `completed=false` and `due_before=tomorrow`.
+2. `list_tasks` with `show_completed=false`, `due_max=<end of today>`.
 
 3. Surface incomplete items due today or overdue.
+
+### Mark a task complete
+
+1. `manage_task` with `action="update"`, `task_id`, `status="completed"`.
 
 ## Gotchas
 
 - Google Tasks is the simple to-do system inside Gmail/Calendar UI. Not to be confused with Google Workspace Admin API "tasks" (different surface used in admin contexts).
 
-- If the user uses ClickUp (or another PM system) as primary, defer task creation to that plugin per the cross-plugin composition pattern in workspace/SKILL.md. Don't double-write tasks across systems.
+- All CRUD operations on tasks flow through `manage_task`. There is no separate `create_task`, `update_task`, or `delete_task` tool - the action verb selects the operation.
 
 - Task lists are per-account.
 
-- Subtasks exist but require working with parent_task_id; check the API surface if subtasks matter.
+- To mark a task complete, call `manage_task` with `action="update"` and `status="completed"`. There is no dedicated "complete" action.
+
+- If the user uses ClickUp (or another PM system) as primary, defer task creation to that plugin per the cross-plugin composition pattern in workspace/SKILL.md. Don't double-write tasks across systems.
 
 ## Account selection
 
@@ -1120,73 +1218,119 @@ This skill wraps `workspace-mcp` tools for Google Tasks. Upstream issues go to h
 
 # Scribe - Forms
 
-Enables Claude to read responses from existing Google Forms and create new forms programmatically.
+Enables Claude to read responses from existing Google Forms, create new forms, and modify form structure. All form mutations flow through `batch_update_form`.
 
 ## When to use
 
 Use this skill when the user's request involves -
 
-- Reading responses to a specific form
+- Reading responses to a specific form (single response or paginated list)
 
-- Creating a new form with questions
+- Creating a new form
+
+- Modifying form questions, sections, or settings
+
+- Publishing or unpublishing a form
 
 - Aggregating or summarising survey results
 
 ## MCP tool reference
 
-The exact tool names depend on the workspace-mcp version - inspect the MCP tools panel for the current set. Typical operations:
-
-### read_form / get_form
-
-Read form structure (questions, layout).
-
-Parameters: `form_id`, `user_google_email`.
-
-### read_form_responses / get_form_responses
-
-Fetch responses for a form.
-
-Parameters: `form_id`, optional pagination, `user_google_email`.
-
-Returns: list of response entries with per-question values.
+The following tools are exposed by workspace-mcp@1.20.4 for Forms. Pass `user_google_email` on every call.
 
 ### create_form
 
 Create a new form.
 
-Parameters: `title`, `description`, `questions[]`, `user_google_email`.
+Parameters:
 
-### update_form
+- `title`
 
-Modify an existing form's questions or settings.
+- `description` (optional)
 
-**At implementation time, verify the actual tool names by inspecting the MCP tools panel.**
+- `document_title` (optional)
+
+- `user_google_email`
+
+Returns: the new form's ID and edit URL. The created form starts empty; use `batch_update_form` to add questions.
+
+### get_form
+
+Read a form's metadata and full question structure.
+
+Parameters: `form_id`, `user_google_email`.
+
+### set_publish_settings
+
+Publish or unpublish a form, control who can respond.
+
+Parameters: `form_id`, settings fields, `user_google_email`.
+
+### get_form_response
+
+Read a single response by response ID.
+
+Parameters: `form_id`, `response_id`, `user_google_email`.
+
+### list_form_responses
+
+List responses for a form, with pagination.
+
+Parameters: `form_id`, optional pagination cursor, `user_google_email`.
+
+### batch_update_form
+
+The workhorse mutation tool. Accepts a list of update requests (mirroring the Google Forms API's batchUpdate). All question additions, edits, deletions, and section changes flow through this.
+
+Parameters:
+
+- `form_id`
+
+- `requests[]` - list of update request objects (e.g. `{"createItem": {...}}`, `{"updateItem": {...}}`, `{"deleteItem": {...}}`)
+
+- `user_google_email`
 
 ## Common patterns
 
-### Summarise survey responses
-
-1. `read_form_responses` to fetch all responses.
-
-2. Group by question, return distribution and free-text excerpts.
-
 ### Create a form from a spec
 
-1. Given a list of questions, `create_form`.
+1. `create_form` with the title and optional description.
 
-2. Use the drive skill to share the resulting form for collection.
+2. `batch_update_form` with `createItem` requests for each question, ordered.
+
+3. (Optional) `set_publish_settings` to publish or share.
+
+4. (Optional) Use the drive skill to share the form file for collection.
+
+### Summarise survey responses
+
+1. `list_form_responses` (paginate as needed) to fetch all responses.
+
+2. Optionally `get_form` to map question IDs to question text.
+
+3. Group answers by question, return distribution and free-text excerpts.
+
+### Add a question to an existing form
+
+1. `get_form` to inspect current structure and pick an insertion index.
+
+2. `batch_update_form` with a `createItem` request including the index.
 
 ## Gotchas
 
-- Form response data structure varies by question type. Multi-select returns arrays; grid questions return nested structures. Be defensive when parsing.
+- Form response data structure varies by question type. Multi-select returns arrays; grid questions return nested structures. Inspect the question type from `get_form` before parsing responses.
 
-- New forms default to private. Sharing requires Drive API calls (use the drive skill alongside).
+- All form mutations flow through `batch_update_form`. There is no separate `update_form` tool - you build a list of typed request objects.
 
-- Edit URL and respond URL are different - know which one the user needs.
+- `batch_update_form` is atomic - if any request fails, none are applied. Group operations that should succeed-or-fail together.
+
+- New forms default to private. Sharing requires Drive API calls (use the drive skill alongside) OR `set_publish_settings`.
+
+- Edit URL and respond URL are different - the edit URL is returned by `create_form`; the respond URL comes from form metadata after publishing.
 
 ## Account selection
 
-Pass `user_google_email` on every call. Forms are per-account in the owner sense, though responses can come from anyone with the form URL.
+Pass `user_google_email` on every call. Forms are per-account in the owner sense, though responses can come from anyone with the respond URL.
 
 ## Cross-service handoff
 
@@ -1201,7 +1345,7 @@ This skill wraps `workspace-mcp` tools for Google Forms. Upstream issues go to h
 
 # Scribe - Chat
 
-Enables Claude to send and read messages in Google Chat spaces.
+Enables Claude to send, read, and search messages in Google Chat spaces, plus manage reactions and attachments.
 
 ## When to use
 
@@ -1211,57 +1355,101 @@ Use this skill when the user's request involves -
 
 - Reading recent messages in a space
 
+- Searching for messages by keyword across spaces
+
 - Posting a workflow summary to a Chat channel
+
+- Adding a reaction to a message
+
+- Downloading a Chat attachment
 
 ## MCP tool reference
 
-The exact tool names depend on the workspace-mcp version - inspect the MCP tools panel for the current set. Typical operations:
+The following tools are exposed by workspace-mcp@1.20.4 for Google Chat. Pass `user_google_email` on every call.
 
-### send_chat_message
+### list_spaces
 
-Send a message to a space.
+List Chat spaces the user is a member of.
+
+Parameters: `user_google_email`, optional pagination.
+
+### get_messages
+
+Get messages from a space.
 
 Parameters:
 
 - `space_id` - format `spaces/ABCDEF`
 
-- `text` (or rich content)
-
-- `thread_key` (optional, to reply in thread)
+- Optional time/cursor filters
 
 - `user_google_email`
 
-### read_chat_messages
+### send_message
 
-Get messages from a space.
+Send a message to a space.
 
-Parameters: `space_id`, `time_min`/`time_max` (optional), `user_google_email`.
+Parameters:
 
-### list_chat_spaces
+- `space_id`
 
-List spaces the user is in.
+- `text` (or rich content)
 
-**At implementation time, verify the actual tool names by inspecting the MCP tools panel.**
+- `thread_key` (optional, to reply in a thread)
+
+- `user_google_email`
+
+### search_messages
+
+Search messages by keyword across spaces the user has access to.
+
+Parameters: `query`, optional space filter, `user_google_email`.
+
+### create_reaction
+
+Add an emoji reaction to a specific message.
+
+Parameters: `message_name`, `emoji`, `user_google_email`.
+
+### download_chat_attachment
+
+Download an attachment from a Chat message.
+
+Parameters: attachment reference, `user_google_email`.
 
 ## Common patterns
 
-### Post a workflow summary
+### Post a workflow summary to a space
 
-1. After a workflow completes, `send_chat_message` to a designated space with a one-line summary and any artifact URLs.
+1. After a workflow completes, `send_message` to a designated space with a one-line summary and any artifact URLs.
 
 ### Read recent activity
 
-1. `read_chat_messages` for a space over a time window.
+1. `get_messages` for a space over a time window.
 
 2. Surface as structured summary with sender, timestamp, content excerpt.
+
+### Find a discussion by topic
+
+1. `search_messages` with the topic as query.
+
+2. For relevant hits, `get_messages` to read the surrounding context.
+
+### Acknowledge a workflow result
+
+1. After `send_message` posts a summary, `create_reaction` to add a thumbs-up so participants know action was taken.
 
 ## Gotchas
 
 - Google Chat is the Workspace messaging product. Distinct from Slack and Microsoft Teams. If the user's team uses Slack primarily, use the Slack plugin instead per the cross-plugin composition pattern.
 
-- Chat space IDs are different from regular email addresses. They look like `spaces/ABCDEF`.
+- Chat space IDs use the `spaces/ABCDEF` format. They are not regular email addresses or random short IDs.
 
-- Bot/app messages may be subject to additional permissions in some Workspace orgs.
+- Tool names do NOT have a `chat_` prefix - just `list_spaces`, `get_messages`, `send_message`, etc. Don't try `send_chat_message` - it doesn't exist.
+
+- Bot/app messages may be subject to additional permissions in some Workspace orgs. If `send_message` fails with a permission error, the user's org may restrict app-posted messages.
+
+- `search_messages` searches across spaces the user has access to. If results are empty, confirm the space is one the authenticated account is a member of.
 
 ## Account selection
 
@@ -1291,7 +1479,7 @@ Calendar (`get_events`) → Gmail (`search_gmail_messages` per attendee) → Doc
 
 ### Sheet logging
 
-Sheets (read header row to confirm structure) → Sheets (append row).
+Sheets (`get_spreadsheet_info` or `list_sheet_tables` to confirm structure) → Sheets (`append_table_rows` for structured tables, or `modify_sheet_values` for raw ranges).
 
 ### Drive activity scan
 

@@ -24,7 +24,7 @@ If a parameter is missing and required, ask the user once.
 
 ## Tool call sequence
 
-1. **Enumerate accounts** - call `list_authenticated_accounts` to get the set of accounts to scan (skip if `--account` was specified).
+1. **Enumerate accounts** - if `--account` was specified, use it. Otherwise list authenticated accounts by scanning `~/.workspace-mcp/credentials/*.json` filenames (see workspace skill "Enumerating authenticated accounts"). If empty, route to `/scribe:auth-init`.
 
 2. **Per account - unread email scan** - `search_gmail_messages` with `query="(is:unread OR is:starred) newer_than:1d"`. Capture top 10 by recency.
 
@@ -103,7 +103,7 @@ User input arrives in `$ARGUMENTS` as a free-form string. Parse for:
 
 ## Tool call sequence
 
-1. **Resolve accounts** - `--account` if specified, otherwise `list_authenticated_accounts`.
+1. **Resolve accounts** - `--account` if specified, otherwise list authenticated accounts by scanning `~/.workspace-mcp/credentials/*.json` filenames (see workspace skill "Enumerating authenticated accounts").
 
 2. **Per account - fetch unread** - `search_gmail_messages` with `query="is:unread newer_than:<since>"`.
 
@@ -269,7 +269,7 @@ User input arrives in `$ARGUMENTS` as a free-form string. Parse for:
 
 ## Tool call sequence
 
-1. **Resolve event** - `get_events` with appropriate `time_min`/`time_max` to find next upcoming, OR `manage_event action="read"` if `--event-id` provided, OR `get_events` with title filter if `--event "title"` provided.
+1. **Resolve event** - `get_events` with appropriate `time_min`/`time_max` to find next upcoming, OR `get_events` with `event_id=<id>` if `--event-id` provided, OR `get_events` with `query=<title>` if `--event "title"` provided.
 
 2. **Extract attendees** - parse attendee emails from the event.
 
@@ -435,7 +435,7 @@ If positional arg missing, ask user.
 
 3. **Per account - email scan** - `search_gmail_messages` with `query="from:<email> OR to:<email> newer_than:<since>"`.
 
-4. **Per account - calendar scan** - `get_events` with `q=<contact-name>` or filter events with the contact as attendee.
+4. **Per account - calendar scan** - `get_events` with `query=<contact-name>` (note - the parameter is `query`, not `q`) or filter events with the contact as attendee.
 
 5. **Drive search** - `search_drive_files` for docs that mention the contact's name or are shared with their email.
 
@@ -913,7 +913,7 @@ User input arrives in `$ARGUMENTS` as a free-form string. Parse for:
 
 ## Tool call sequence
 
-1. **Resolve event** - most recent past event via `get_events` (sort desc, take first), OR by ID via `manage_event action="read"`.
+1. **Resolve event** - most recent past event via `get_events` with `time_max=<now>` (sort desc, take first), OR by ID via `get_events` with `event_id=<id>`.
 
 2. **Extract metadata** - attendees, original event description, location, time range.
 
@@ -1143,9 +1143,9 @@ Always return:
 
 These patterns recur across multiple workflows -
 
-- **Multi-account loop** - workflows that scan or compile across accounts call `list_authenticated_accounts` first, then iterate. The orchestration router (workspace/SKILL.md) defines when this fires automatically vs. prompts.
+- **Multi-account loop** - workflows that scan or compile across accounts enumerate authenticated accounts by scanning the credentials directory (`~/.workspace-mcp/credentials/*.json`). The orchestration router (`workspace/SKILL.md` "Enumerating authenticated accounts") documents the exact command. `workspace-mcp` does NOT expose a `list_authenticated_accounts` MCP tool.
 
-- **Attachment handling** - workflows that download attachments use `get_gmail_attachment_content` then `create_drive_file`. The sandbox at `~/.workspace-mcp/attachments` does not constrain Drive uploads, only local file uploads.
+- **Attachment handling** - workflows that download attachments use `get_gmail_attachment_content` then `create_drive_file`. The sandbox at `~/.workspace-mcp/attachments` constrains local file uploads only, not Drive operations.
 
 - **Cross-plugin defer** - any workflow can chain into ClickUp, Slack, Spiffy, AC Builder, or other plugins by referencing them in prose. Claude reads the hint and chains naturally.
 
