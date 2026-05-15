@@ -21,7 +21,7 @@ User input arrives in `$ARGUMENTS` as a free-form string. Parse for:
 
 ## Tool call sequence
 
-1. **Resolve accounts** - `--account` if specified, otherwise `list_authenticated_accounts`.
+1. **Resolve accounts** - `--account` if specified, otherwise list authenticated accounts by scanning `~/.workspace-mcp/credentials/*.json` filenames (see workspace skill "Enumerating authenticated accounts").
 
 2. **Per account - fetch unread** - `search_gmail_messages` with `query="is:unread newer_than:<since>"`.
 

@@ -21,7 +21,7 @@ If a parameter is missing and required, ask the user once.
 
 ## Tool call sequence
 
-1. **Enumerate accounts** - call `list_authenticated_accounts` to get the set of accounts to scan (skip if `--account` was specified).
+1. **Enumerate accounts** - if `--account` was specified, use it. Otherwise list authenticated accounts by scanning `~/.workspace-mcp/credentials/*.json` filenames (see workspace skill "Enumerating authenticated accounts"). If empty, route to `/scribe:auth-init`.
 
 2. **Per account - unread email scan** - `search_gmail_messages` with `query="(is:unread OR is:starred) newer_than:1d"`. Capture top 10 by recency.
 

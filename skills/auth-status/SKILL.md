@@ -30,7 +30,7 @@ For each token file found, report -
 
 - File size (sanity check - empty or very small files indicate corruption)
 
-If you want richer status (token expiry, scopes), call the MCP tool `list_authenticated_accounts` from a Claude Code session - it returns parsed account info from the same directory.
+For richer status (token expiry, scopes), open each JSON file and inspect its contents - the structure is the standard OAuth credentials JSON with `expiry`, `scopes`, and other fields. `workspace-mcp` does not expose a dedicated "list accounts" MCP tool; the credentials directory is the authoritative source.
 
 If the directory is empty or does not exist, no accounts are authenticated. Suggest running `/scribe:auth-init` to set up the OAuth client and authenticate the first account, or `/scribe:auth-add EMAIL` to add another account once init has been done.
 

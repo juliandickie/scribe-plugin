@@ -13,7 +13,7 @@ Scribe supports multiple authenticated Google accounts. Pass `user_google_email`
 
 1. **Explicit user mention wins.** "Use julian@idd to..." or "for my Pro Marketing account" - use that one.
 
-2. **Explicit multi-account intent triggers auto-loop.** "Check both my inboxes," "across all my accounts," "for julian@idd and julian@pro" - call `list_authenticated_accounts`, then iterate, accumulating results. Do NOT prompt for confirmation when intent is this explicit.
+2. **Explicit multi-account intent triggers auto-loop.** "Check both my inboxes," "across all my accounts," "for julian@idd and julian@pro" - enumerate authenticated accounts (see below), then iterate, accumulating results. Do NOT prompt for confirmation when intent is this explicit.
 
 3. **Client or contact context implies an account.** If working in an AHPRA-style `clients/{CLIENT-ID}/` folder, check `profile.md` frontmatter for `google_account_email`. If the user names a contact, look them up in Contacts and use the matching account.
 
@@ -109,9 +109,27 @@ The MCP server enforces a directory sandbox for file uploads via `ALLOWED_FILE_D
 
 The push skill (`skills/push/SKILL.md`) documents the auto-copy decision tree in detail. For workflow skills that handle attachments, link to that pattern rather than re-stating it.
 
+## Enumerating authenticated accounts
+
+`workspace-mcp` does not expose a tool to list authenticated accounts. The authoritative source is the filesystem: each authenticated account has a JSON token file at `~/.workspace-mcp/credentials/<email>.json`.
+
+To enumerate accounts, run a bash listing:
+
+```bash
+ls ~/.workspace-mcp/credentials/*.json 2>/dev/null | xargs -n1 basename | sed 's/\.json$//'
+```
+
+Each line of output is one authenticated email. Use these as `user_google_email` parameters on MCP tool calls.
+
+Windows equivalent:
+
+```powershell
+Get-ChildItem "$env:USERPROFILE\.workspace-mcp\credentials\*.json" | ForEach-Object { $_.BaseName }
+```
+
 ## Setup precondition check
 
-Before any MCP tool call, if you have any doubt the user has set up OAuth, call `list_authenticated_accounts`. If it returns empty, do NOT attempt other tool calls - they will fail with confusing token errors. Instead direct the user to `/scribe:auth-init`.
+Before any MCP tool call, if you have any doubt the user has set up OAuth, enumerate the credentials directory (see above). If it is empty or missing, do NOT attempt other tool calls - they will fail with confusing token errors. Instead direct the user to `/scribe:auth-init`.
 
 ## User-invokable workflow quick reference
 

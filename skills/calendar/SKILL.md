@@ -119,7 +119,7 @@ Read or set OOO auto-reply.
 
 ### Multi-account day view
 
-1. `list_authenticated_accounts` to enumerate accounts.
+1. Enumerate authenticated accounts by scanning `~/.workspace-mcp/credentials/*.json` filenames (see workspace/SKILL.md "Enumerating authenticated accounts").
 
 2. Per account, `get_events` for the day.
 
