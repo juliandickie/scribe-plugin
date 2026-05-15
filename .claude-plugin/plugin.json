@@ -1,7 +1,7 @@
 {
   "name": "scribe",
-  "version": "0.3.1",
-  "description": "Scribe - Google Workspace automation for Claude Code. Push markdown to Drive, read and update Doc tabs, multi-account OAuth. Wraps taylorwilsdon/google_workspace_mcp.",
+  "version": "1.0.0",
+  "description": "Scribe - Google Workspace orchestration for Claude Code. Multi-account access to Gmail, Calendar, Drive, Docs, Sheets, Slides, Contacts, Tasks, Forms, and Chat. Ships 14 cross-service workflow commands plus 10 service skills. Wraps taylorwilsdon/google_workspace_mcp.",
   "author": {
     "name": "Julian Dickie",
     "url": "https://github.com/juliandickie"
@@ -15,6 +15,15 @@
     "drive",
     "docs",
     "gmail",
+    "calendar",
+    "sheets",
+    "slides",
+    "contacts",
+    "tasks",
+    "forms",
+    "chat",
+    "workflows",
+    "automation",
     "mcp",
     "oauth",
     "scribe"
@@ -26,10 +35,18 @@
       "args": [
         "workspace-mcp@1.20.4",
         "--tools",
-        "drive",
+        "appscript",
+        "calendar",
+        "chat",
+        "contacts",
         "docs",
+        "drive",
+        "forms",
         "gmail",
-        "calendar"
+        "search",
+        "sheets",
+        "slides",
+        "tasks"
       ],
       "env": {
         "GOOGLE_CLIENT_SECRET_PATH": "${HOME}/.workspace-mcp/oauth_client.json",
