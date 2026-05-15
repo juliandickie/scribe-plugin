@@ -47,15 +47,21 @@ Create, update, or delete an event.
 
 Parameters:
 
-- `action` - `"create"`, `"update"`, or `"delete"`
+- `action` - `"create"`, `"update"`, `"delete"`, or `"rsvp"`
 
-- `event_id` - required for update/delete
+- `event_id` - required for update, delete, and rsvp
 
-- Event fields: `summary`, `start`, `end`, `attendees`, `description`, `location`
+- Event fields: `summary`, `start_time`, `end_time`, `attendees`, `description`, `location`, `timezone`, etc.
 
-- `calendar_id`
+- `response` - for `rsvp` action only: `"accepted"`, `"declined"`, `"tentative"`, `"needsAction"`
+
+- `send_updates` - `"all"` (default), `"externalOnly"`, or `"none"` to control notification emails
+
+- `calendar_id` (defaults to `"primary"`)
 
 - `user_google_email`
+
+Note: `manage_event` does NOT support a `"read"` action. To read a specific event by ID, use `get_events` with `event_id=<id>` instead.
 
 ### query_freebusy
 
@@ -135,7 +141,7 @@ Read or set OOO auto-reply.
 
 - `query_freebusy` returns busy intervals, not free intervals. Compute free = window minus busy.
 
-- Attendees added in `manage_event` get an automatic invite email. To suppress, the upstream tool may have a flag; check current docs.
+- Attendees added in `manage_event` get an automatic invite email by default. To control this, pass `send_updates` - `"all"` (default), `"externalOnly"` (only external attendees notified), or `"none"` (no emails sent). Useful when batch-creating internal-only events or syncing existing schedules.
 
 ## Account selection
 

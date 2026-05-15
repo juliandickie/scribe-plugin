@@ -21,7 +21,7 @@ User input arrives in `$ARGUMENTS` as a free-form string. Parse for:
 
 ## Tool call sequence
 
-1. **Resolve event** - most recent past event via `get_events` (sort desc, take first), OR by ID via `manage_event action="read"`.
+1. **Resolve event** - most recent past event via `get_events` with `time_max=<now>` (sort desc, take first), OR by ID via `get_events` with `event_id=<id>`.
 
 2. **Extract metadata** - attendees, original event description, location, time range.
 

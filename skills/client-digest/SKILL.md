@@ -29,7 +29,7 @@ If positional arg missing, ask user.
 
 3. **Per account - email scan** - `search_gmail_messages` with `query="from:<email> OR to:<email> newer_than:<since>"`.
 
-4. **Per account - calendar scan** - `get_events` with `q=<contact-name>` or filter events with the contact as attendee.
+4. **Per account - calendar scan** - `get_events` with `query=<contact-name>` (note - the parameter is `query`, not `q`) or filter events with the contact as attendee.
 
 5. **Drive search** - `search_drive_files` for docs that mention the contact's name or are shared with their email.
 

@@ -21,7 +21,7 @@ User input arrives in `$ARGUMENTS` as a free-form string. Parse for:
 
 ## Tool call sequence
 
-1. **Resolve event** - `get_events` with appropriate `time_min`/`time_max` to find next upcoming, OR `manage_event action="read"` if `--event-id` provided, OR `get_events` with title filter if `--event "title"` provided.
+1. **Resolve event** - `get_events` with appropriate `time_min`/`time_max` to find next upcoming, OR `get_events` with `event_id=<id>` if `--event-id` provided, OR `get_events` with `query=<title>` if `--event "title"` provided.
 
 2. **Extract attendees** - parse attendee emails from the event.
 

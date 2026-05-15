@@ -35,7 +35,7 @@ These are the canonical sequences for common multi-step shapes.
 
 ### Calendar to prep Doc
 
-1. Calendar - `get_events` for the window, `manage_event` if listing free/busy.
+1. Calendar - `get_events` for the window. For free/busy queries across attendees, use `query_freebusy` (not `manage_event`).
 
 2. Gmail - `search_gmail_messages` filtered by attendee emails to find prior threads.
 
