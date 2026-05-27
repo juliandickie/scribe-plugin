@@ -23,6 +23,7 @@ The plugin's distinctive value is the integration polish, not the underlying MCP
 - **Direct download** - `https://github.com/juliandickie/scribe-plugin/archive/refs/tags/v1.0.0.zip`
 - **Skill count** - 30 (6 existing infra + 1 orchestration + 10 service + 14 workflow)
 - **Tools enabled** - all 12 workspace-mcp tool groups
+- **Open issues for next dev cycle** (as of 2026-05-27) - tracked in `docs/issues/`. Most recent entry - [`populate-from-markdown-table-rendering.md`](docs/issues/populate-from-markdown-table-rendering.md) covering the GFM table rendering bug in `manage_doc_tab populate_from_markdown` plus 4 adjacent observations, captured from a multi-table Doc rebuild on the iDD LPIS social media plan.
 
 ## Architecture - where this fits in the broader ecosystem
 
