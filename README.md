@@ -6,7 +6,7 @@
 
 ---
 
-**Version 1.0.0** | MIT licensed | Wraps [taylorwilsdon/google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp)
+**Version 1.1.0** | MIT licensed | Wraps [taylorwilsdon/google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp)
 
 ```bash
 /plugin marketplace add juliandickie/scribe-plugin

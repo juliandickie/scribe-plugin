@@ -1,6 +1,6 @@
 # Scribe Plugin
 
-Context document for AI agents and contributors picking up this project in a new session. The README.md is for end users; this file is for whoever is editing the repo. Last refreshed 2026-06-13.
+Context document for AI agents and contributors picking up this project in a new session. The README.md is for end users; this file is for whoever is editing the repo. Last refreshed 2026-06-14.
 
 ## What this project is
 
@@ -14,13 +14,13 @@ A Claude Code plugin that wraps [taylorwilsdon's `workspace-mcp`](https://github
 
 The plugin's distinctive value is the integration polish, not the underlying MCP server's capability. The capability is upstream's. We made the install one command, the OAuth setup five minutes, and the cross-Workspace-org workflow tractable.
 
-## Current state - as of 2026-05-15
+## Current state - as of 2026-06-14
 
-- **Plugin version** - 1.0.0 (in plugin.json + marketplace.json)
+- **Plugin version** - 1.1.0 (in plugin.json + marketplace.json)
 - **Pinned upstream version** - `workspace-mcp@1.21.2` from PyPI
-- **Distribution** - GitHub at `juliandickie/scribe-plugin`, public, MIT licensed, with v1.0.0 release tagged
+- **Distribution** - GitHub at `juliandickie/scribe-plugin`, public, MIT licensed, with v1.1.0 release tagged
 - **Marketplace install** - `/plugin marketplace add juliandickie/scribe-plugin` then `/plugin install scribe`
-- **Direct download** - `https://github.com/juliandickie/scribe-plugin/archive/refs/tags/v1.0.0.zip`
+- **Direct download** - `https://github.com/juliandickie/scribe-plugin/archive/refs/tags/v1.1.0.zip`
 - **Skill count** - 31 (6 existing infra + 1 orchestration + 10 service + 14 workflow)
 - **Tools enabled** - all 12 workspace-mcp tool groups
 - **Open issues for next dev cycle** (as of 2026-05-27) - tracked in `docs/issues/`. Most recent entry - [`populate-from-markdown-table-rendering.md`](docs/issues/populate-from-markdown-table-rendering.md) covering the GFM table rendering bug in `manage_doc_tab populate_from_markdown` plus 4 adjacent observations, captured from a multi-table Doc rebuild on the iDD LPIS social media plan.
