@@ -57,9 +57,9 @@ Parameters: `file_id`, `user_google_email`.
 
 Two follow-ups it enables -
 
-- Attach the file - pass the returned reference as a gmail attachment `url` (the send and draft tools name this tool explicitly) or as a `create_drive_file` `fileUrl`. No staging.
+- Attach the file - feed the returned reference into a gmail attachment or a `create_drive_file` `fileUrl`. The send and draft tools name this tool explicitly. No staging.
 
-- Read it locally - the file also lands in the managed attachments directory, so it can be read from disk after the call.
+- Read it locally - in the stdio deployment Scribe uses, the call saves the file into the managed attachments directory and returns that path, so it can be read from disk. An HTTP-transport deployment returns a download URL instead.
 
 See "File and attachment handling" in `workspace/SKILL.md` for how this fits the cross-tool file-reference model.
 

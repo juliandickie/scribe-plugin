@@ -174,11 +174,7 @@ If the user has multiple Google Workspace orgs (e.g. one for agency, one for ins
 
 - "Missing required argument: service_name" - the `start_google_auth` tool requires both `user_google_email` and `service_name`. Valid values include `drive`, `docs`, `gmail`, `calendar`, `sheets`, `slides`, `contacts`, `tasks`, `forms`, `chat`. Use `drive` for the initial setup; it covers the broad scope set.
 
-- **Windows - credentials or client file not found after setup:** The plugin uses `${HOME}` to locate files. On some Windows systems `HOME` is not set as a standard environment variable. If credential or client-file path errors persist after placing the JSON correctly, add these overrides to your project `.claude/settings.json` under `mcpServers.scribe.env`, replacing `C:\Users\YourName` with your actual home directory path:
-  ```json
-  "GOOGLE_CLIENT_SECRET_PATH": "C:\\Users\\YourName\\.workspace-mcp\\oauth_client.json",
-  "WORKSPACE_MCP_CREDENTIALS_DIR": "C:\\Users\\YourName\\.workspace-mcp\\credentials"
-  ```
+- **Windows - credentials or client file not found after setup:** This is the `${HOME}` expansion issue. Set the explicit paths shown in "Windows - set explicit paths before first run" above, in your project `.claude/settings.json` under `mcpServers.scribe.env`.
 
 If the user hits any other friction, walk them through it. Refer them to the plugin README for screenshots and the multi-org appendix.
 

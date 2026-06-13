@@ -266,11 +266,11 @@ Internal-type OAuth consent screens only accept identities from the owning Works
 
 The `disable-model-invocation: true` flag in skill frontmatter prevents Claude from auto-triggering a skill based on context matching. Use it for skills that should ONLY run when the user explicitly types the slash command.
 
-Where it applies in v1.0:
+Where it applies (as of 1.1.0):
 
 - **All 14 workflow skills** have `disable-model-invocation: true` (user-only invocation via slash command).
 
-- **Infra skills** `auth-init`, `auth-add`, `auth-status`, `client-resolve` have it (one-time setup operations, not for auto-trigger).
+- **Infra skills** `auth-init`, `auth-add`, `auth-status`, `client-resolve`, and `start` have it (setup and orientation operations, not for auto-trigger).
 
 - **The `workspace` orchestration router** does NOT have it (auto-activates on every Workspace-context turn).
 
