@@ -187,13 +187,25 @@ Deferred-tools caveat (important, and the refinement Julian should sign off) - i
 
 Rationale - the schemas are the WHAT (tools and params); the skills are the HOW and the WATCH-OUT-FOR (selection, gotchas, recovery, chaining). E sharpens that division of labour so the common case is fast and failures self-correct, without bloating the always-on context.
 
+### Cluster F - File-handling depth (Wave 2)
+
+Raised 2026-06-14. The Wave 1 router "File and attachment handling" map covers the mechanics; Wave 2 adds the why and the large-file story -
+
+- Document the security rationale - the attachment sandbox is an upstream anti-prompt-injection and exfiltration guardrail (verified against the workspace-mcp docs), with an always-blocked floor for sensitive paths (`.ssh`, `.env`, `.aws`, credential files) that no allowlist can override.
+
+- Document the `ALLOWED_FILE_DIRS` expansion option, so a user can add a trusted directory (a project or media folder) to their `.claude/settings.json` and attach from it directly instead of copy-staging.
+
+- Large-file and disk-duplication guidance - the copy-into-attachments staging duplicates the file on disk. Negligible for text, but a real cost for video and other large media. For big files, widen `ALLOWED_FILE_DIRS` to read in place rather than copy-stage. Note `get_drive_file_download_url` also lands a local copy in stdio mode, so downloaded media accumulates too.
+
+- Open question - whether to add a cleanup step or command for the managed attachments directory so staged and downloaded large files do not pile up (a `/scribe` housekeeping command, or auto-pruning per-session subdirs after use).
+
 ### Phasing
 
 Cluster E roughly doubles the surface of this work (it touches all ten service skills), so the writing-plans phase should sequence it as a second wave -
 
 - Wave 1 - accuracy and onboarding - clusters A, B, C, D1, D2. Self-contained and shippable on its own.
 
-- Wave 2 - self-discovery refactor - cluster E. Builds on Wave 1's gotcha placements; can ship as a follow-on if Wave 1 needs to land first.
+- Wave 2 - self-discovery refactor and file-handling depth - clusters E and F. Builds on Wave 1's gotcha placements; can ship as a follow-on if Wave 1 needs to land first.
 
 This keeps each release reviewable and lets E1 plus E2 (the high-value, low-risk fast path) land even if E4 (the broader param trim) needs more iteration.
 
