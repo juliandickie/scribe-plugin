@@ -12,7 +12,7 @@ help: ## Show available targets and what they do
 validate: ## Validate manifests parse and skill structure is intact
 	@python3 -m json.tool .claude-plugin/plugin.json > /dev/null && echo "  plugin.json - valid JSON"
 	@python3 -m json.tool .claude-plugin/marketplace.json > /dev/null && echo "  marketplace.json - valid JSON"
-	@for skill in workspace auth-init auth-add auth-status push client-resolve \
+	@for skill in workspace auth-init auth-add auth-status push client-resolve start \
 	              gmail calendar sheets slides docs drive contacts tasks forms chat \
 	              daily-briefing inbox-triage support-scan meeting-prep thread-to-doc \
 	              client-digest weekly-wrap follow-up-tracker contact-onboard doc-chase \
