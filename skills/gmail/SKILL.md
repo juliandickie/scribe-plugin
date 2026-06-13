@@ -127,6 +127,8 @@ Create a draft. Same surface as `send_gmail_message`, with one difference - `to`
 
 - Bytes already in memory - pass `{"content": "<base64>", "filename": "<name>"}` (standard base64, not urlsafe).
 
+- An inline image to embed in an HTML body - add a `content_id` key to the attachment and reference it from the `body` (with `body_format: html`) as `cid:<content_id>` inside an `<img>` tag. Needs workspace-mcp 1.21.1 or newer.
+
 Optional `mime_type` per item is auto-detected if omitted.
 
 ### modify_gmail_message_labels

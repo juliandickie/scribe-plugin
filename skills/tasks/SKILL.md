@@ -21,7 +21,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.20.4 for Tasks. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.21.2 for Tasks. Pass `user_google_email` on every call.
 
 ### list_task_lists
 

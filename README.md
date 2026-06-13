@@ -140,7 +140,7 @@ Scribe is thirty-one skills organised in a three-layer architecture.
 
 3. **Workflow skills** - fourteen user-invoked skills (the `/scribe:` commands above), each a complete recipe for one cross-service pattern.
 
-Each skill stays under 500 lines, so Claude reads only what it needs. The underlying MCP server is taylorwilsdon's [`workspace-mcp`](https://github.com/taylorwilsdon/google_workspace_mcp), pinned to a known-good version (`workspace-mcp@1.20.4`) and pulled automatically by uvx on install.
+Each skill stays under 500 lines, so Claude reads only what it needs. The underlying MCP server is taylorwilsdon's [`workspace-mcp`](https://github.com/taylorwilsdon/google_workspace_mcp), pinned to a known-good version (`workspace-mcp@1.21.2`) and pulled automatically by uvx on install.
 
 ## Setup, multi-org, customisation
 

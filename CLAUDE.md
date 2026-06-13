@@ -17,7 +17,7 @@ The plugin's distinctive value is the integration polish, not the underlying MCP
 ## Current state - as of 2026-05-15
 
 - **Plugin version** - 1.0.0 (in plugin.json + marketplace.json)
-- **Pinned upstream version** - `workspace-mcp@1.20.4` from PyPI
+- **Pinned upstream version** - `workspace-mcp@1.21.2` from PyPI
 - **Distribution** - GitHub at `juliandickie/scribe-plugin`, public, MIT licensed, with v1.0.0 release tagged
 - **Marketplace install** - `/plugin marketplace add juliandickie/scribe-plugin` then `/plugin install scribe`
 - **Direct download** - `https://github.com/juliandickie/scribe-plugin/archive/refs/tags/v1.0.0.zip`
@@ -37,7 +37,7 @@ Two repositories. This plugin and the upstream MCP server it wraps.
 │ Our umbrella issue #731 produced PR #742; merged 2026-05-01.         │
 │ Pending - upstream issue #771 (configurable scopes, design phase).   │
 └─────────────────────────────────────▲────────────────────────────────┘
-                                      │ uvx pulls workspace-mcp@1.20.4
+                                      │ uvx pulls workspace-mcp@1.21.2
                                       │ from PyPI
                                       │
 ┌─────────────────────────────────────┴────────────────────────────────┐
@@ -196,13 +196,13 @@ For releases with substantive changes, draft custom release notes via `gh releas
 
 When taylorwilsdon ships a new release of `workspace-mcp` -
 
-1. Bump the pin in `.claude-plugin/plugin.json` `mcpServers.scribe.args[0]` from `workspace-mcp@1.20.4` to the new version
-2. Bump the same in `hooks/post-install.sh` `WORKSPACE_MCP_VERSION="1.20.4"`
-3. Bump the same in `skills/auth-init/SKILL.md`, `skills/auth-add/SKILL.md`, `docs/multi-org-setup.md` wherever the pin appears (currently 5 files total)
+1. Bump the pin in `.claude-plugin/plugin.json` `mcpServers.scribe.args[0]` from `workspace-mcp@1.21.2` to the new version
+2. Bump the same in `hooks/post-install.sh` `WORKSPACE_MCP_VERSION="1.21.2"`
+3. Bump every other occurrence of the version string - it is scattered across more than the old "5 files." Find them all with `grep -rn 'workspace-mcp@' .` (the `--permissions` example in `skills/auth-init/SKILL.md`, the run commands in `docs/multi-org-setup.md`, the "tools exposed by workspace-mcp@<ver>" stamps in `docs/services.md` and the tasks/forms/sheets/chat/contacts/slides service skills, plus `README.md` and this file's state lines)
 4. Test the update locally - install the plugin, run `/scribe:auth-status`, push a sample markdown file
 5. Run `make publish VERSION=...`
 
-Consider whether the upstream release contains breaking changes (API surface changes, scope changes, env var renames). If so, bump Scribe's MAJOR or MINOR version accordingly. Patch upstream releases (1.20.4 -> 1.20.5) typically map to patch Scribe releases (0.3.0 -> 0.3.1).
+Consider whether the upstream release contains breaking changes (API surface changes, scope changes, env var renames). If so, bump Scribe's MAJOR or MINOR version accordingly. Patch upstream releases (1.21.2 -> 1.21.3) typically map to patch Scribe releases (1.1.0 -> 1.1.1).
 
 ### Validation
 
@@ -240,7 +240,7 @@ grep -rn $'—' README.md docs/ skills/ scripts/ hooks/ Makefile && echo "FAIL -
 
 ### What's in the PyPI package right now
 
-`workspace-mcp` v1.20.4 (released 2026-05-07) includes everything from PRs #727 and #742. The plugin pins to this exact version. The next upstream release will likely be 1.20.5 or 1.21.0 depending on what taylor includes.
+`workspace-mcp` v1.21.2 (released 2026-06-11) is the current pin. It includes everything from PRs #727 and #742 plus the 1.21.x additions (gmail `content_id` inline images, Office-to-Google import, contacts birthday fields, a socket-timeout hang fix) - all additive, with no breaking changes from the previous pin.
 
 ### How to contribute more
 
