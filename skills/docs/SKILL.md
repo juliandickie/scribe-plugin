@@ -167,6 +167,10 @@ Diagnostics tools.
 
 - `batch_update_doc` is atomic - if any operation fails, none are applied. Use for invariant-critical updates.
 
+- `populate_from_markdown` and `import_to_google_doc` render GFM tables as raw pipe text, not real Doc tables. Express tabular data as a properly-formatted list, or build a real table with `create_table_with_data`. Verify with `inspect_doc_structure(detailed=true)` - `tables: 0` means the table did not render.
+
+- Markdown's single newline is a soft break, so consecutive lines collapse into one paragraph in the Doc even though they look line-per-line in the source. For a real bulleted or numbered list, use a consistent marker (`- ` or `1. `) with a blank line before and after the list; tight items then render as real Doc bullets. For separate plain paragraphs (no bullets), put a blank line between each line. Do not force content into a list just to stop the collapse - separate paragraphs only need the blank line. A single paragraph where several lines were expected means a soft-break collapse.
+
 ## Account selection
 
 Pass `user_google_email` on every call. The full account selection logic lives in `skills/workspace/SKILL.md` under "Multi-account routing."

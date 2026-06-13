@@ -31,7 +31,7 @@ These are the canonical sequences for common multi-step shapes.
 
 2. Drive - if attachments matter, `get_gmail_attachment_content` then `create_drive_file` to save them into a client/contact subfolder.
 
-3. Docs - `import_to_google_doc` with the thread content, or `manage_doc_tab populate_from_markdown` if writing into an existing doc tab.
+3. Docs - `import_to_google_doc` with the thread content, or `manage_doc_tab populate_from_markdown` if writing into an existing doc tab. Mind the rendering gotchas - tables become raw pipe text, and single-newline lines collapse into one paragraph (see the docs skill Gotchas for the list and paragraph patterns).
 
 ### Calendar to prep Doc
 
