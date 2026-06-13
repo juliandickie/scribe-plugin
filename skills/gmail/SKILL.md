@@ -97,19 +97,37 @@ Returns: attachment bytes or saved-to-disk reference.
 
 ### send_gmail_message
 
-Send a new message.
+Send a new message. Required - `to`, `subject`, `body`, `user_google_email`.
 
-Parameters:
+Key optional params (the live tool schema carries the full list and defaults; these are the ones that change behaviour) -
 
-- `to`, `subject`, `body` (required)
+- `body_format` - `plain` (default) or `html`. Use `html` to send a formatted HTML email.
 
-- `cc`, `bcc` (optional)
+- `cc`, `bcc` - additional recipients.
 
-- `user_google_email`
+- `from_email` plus `from_name` - send from a configured Gmail Send As alias (set up under Settings > Accounts > Send mail as). `from_name` sets the display name, producing a `Name <email>` From header.
+
+- `include_signature` - defaults true and appends the Gmail signature. Set false when the body already carries its own sign-off, otherwise the message gets a double signature.
+
+- `attachments` - see the Attachments subsection below.
+
+- `thread_id`, `in_reply_to`, `references`, `quote_original` - reply threading. `quote_original` requires `thread_id`.
 
 ### draft_gmail_message
 
-Create a draft. Same parameter shape as send.
+Create a draft. Same surface as `send_gmail_message`, with one difference - `to` is optional for a draft (you can save a recipient-less draft) but required for send. This is the default for any reply you are not explicitly told to send.
+
+### Attachments (send and draft)
+
+`attachments` is a list; each item is one of three shapes. Pick by where the file already is -
+
+- Already in Drive or on an email - pass `{"url": "<mcp-url>"}` using the URL returned by `get_drive_file_download_url` or `get_gmail_attachment_content`. No local staging needed.
+
+- A genuinely-local file (for example on the Desktop) - pass `{"path": "<file>"}`. The `path` mode is the only one bound by the `ALLOWED_FILE_DIRS` sandbox, so the file must already live in `~/.workspace-mcp/attachments` or a configured allowed dir. See "File and attachment handling" in `workspace/SKILL.md` for the map and `push/SKILL.md` for the staging decision tree.
+
+- Bytes already in memory - pass `{"content": "<base64>", "filename": "<name>"}` (standard base64, not urlsafe).
+
+Optional `mime_type` per item is auto-detected if omitted.
 
 ### modify_gmail_message_labels
 
@@ -176,6 +194,8 @@ Create or delete filters.
 - Batch operations return per-item success/failure. Always check the response for partial failures before reporting success.
 
 - Email body can be plain text or HTML. Detect by content; the tool accepts either via `body` param.
+
+- Attachments have three modes (url / path / content). Only `path` hits the `ALLOWED_FILE_DIRS` sandbox. For a file already in Drive or on an email, pass its `url` from `get_drive_file_download_url` / `get_gmail_attachment_content` and skip staging entirely.
 
 ## Account selection
 
