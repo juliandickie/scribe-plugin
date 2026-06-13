@@ -1,12 +1,12 @@
 # Scribe Plugin
 
-Context document for AI agents and contributors picking up this project in a new session. The README.md is for end users; this file is for whoever is editing the repo. Last refreshed 2026-05-15.
+Context document for AI agents and contributors picking up this project in a new session. The README.md is for end users; this file is for whoever is editing the repo. Last refreshed 2026-06-13.
 
 ## What this project is
 
 A Claude Code plugin that wraps [taylorwilsdon's `workspace-mcp`](https://github.com/taylorwilsdon/google_workspace_mcp) (Python, on PyPI). The plugin contributes -
 
-- 30 skills (`skills/<name>/SKILL.md`) organised in a three-layer architecture (orchestration router + 10 auto-activated service skills + 14 user-invokable workflow skills + 5 existing infra skills) that teach Claude when and how to use the MCP tools.
+- 31 skills (`skills/<name>/SKILL.md`) organised in a three-layer architecture (orchestration router + 10 auto-activated service skills + 14 user-invokable workflow skills + 6 existing infra skills) that teach Claude when and how to use the MCP tools.
 
 - An MCP server declaration (`mcpServers` block in plugin.json) that uvx-pulls a pinned version of `workspace-mcp` from PyPI and pre-configures three env vars so the credential flow works out of the box.
 
@@ -21,7 +21,7 @@ The plugin's distinctive value is the integration polish, not the underlying MCP
 - **Distribution** - GitHub at `juliandickie/scribe-plugin`, public, MIT licensed, with v1.0.0 release tagged
 - **Marketplace install** - `/plugin marketplace add juliandickie/scribe-plugin` then `/plugin install scribe`
 - **Direct download** - `https://github.com/juliandickie/scribe-plugin/archive/refs/tags/v1.0.0.zip`
-- **Skill count** - 30 (6 existing infra + 1 orchestration + 10 service + 14 workflow)
+- **Skill count** - 31 (6 existing infra + 1 orchestration + 10 service + 14 workflow)
 - **Tools enabled** - all 12 workspace-mcp tool groups
 - **Open issues for next dev cycle** (as of 2026-05-27) - tracked in `docs/issues/`. Most recent entry - [`populate-from-markdown-table-rendering.md`](docs/issues/populate-from-markdown-table-rendering.md) covering the GFM table rendering bug in `manage_doc_tab populate_from_markdown` plus 4 adjacent observations, captured from a multi-table Doc rebuild on the iDD LPIS social media plan.
 
@@ -42,7 +42,7 @@ Two repositories. This plugin and the upstream MCP server it wraps.
                                       │
 ┌─────────────────────────────────────┴────────────────────────────────┐
 │ juliandickie/scribe-plugin (THIS REPO)                                │
-│ Claude Code plugin - 30 skills + manifest + hooks + docs.             │
+│ Claude Code plugin - 31 skills + manifest + hooks + docs.             │
 │ Distributed via the official Claude Code plugin marketplace flow.     │
 └──────────────────────────────────────────────────────────────────────┘
 ```
@@ -58,7 +58,7 @@ scribe-plugin/
 ├── .claude-plugin/
 │   ├── plugin.json              # MCP server declaration + manifest
 │   └── marketplace.json         # registry entry for /plugin marketplace add
-├── skills/                      # 30 skills total (three layers)
+├── skills/                      # 31 skills total (three layers)
 │   # Layer 1 - Orchestration (auto-activated)
 │   ├── workspace/SKILL.md       # Routing brain; multi-account, chaining patterns
 │   # Layer 2 - Service skills (auto-activated, narrow descriptions)
@@ -92,7 +92,8 @@ scribe-plugin/
 │   ├── auth-add/SKILL.md        # Add another account
 │   ├── auth-status/SKILL.md     # List authenticated accounts
 │   ├── push/SKILL.md            # BOTH user-invoked AND auto-activated
-│   └── client-resolve/SKILL.md  # AHPRA-specific repo convention
+│   ├── client-resolve/SKILL.md  # AHPRA-specific repo convention
+│   └── start/SKILL.md           # Discoverability - /scribe:start
 ├── hooks/
 │   └── post-install.sh          # Optional manual pre-install of workspace-mcp
 ├── scripts/
@@ -159,7 +160,7 @@ User-invokable slash commands for named cross-service patterns:
 
 Each workflow skill is a complete recipe for a multi-service tool chain. See `docs/workflows.md` for detailed reference.
 
-**Existing infra skills (5).** `auth-init`, `auth-add`, `auth-status`, `push`, `client-resolve` - unchanged from earlier versions.
+**Existing infra skills (6).** `auth-init`, `auth-add`, `auth-status`, `push`, `client-resolve`, `start` - `start` is the discoverability command added in 1.1.0; the rest are unchanged.
 
 **Historical note** - the skill named `scribe` was renamed to `workspace` in v0.2.0 to avoid the awkward `/scribe:scribe` invocation name. The auto-activated skill is at `skills/workspace/SKILL.md` even though the plugin name and command prefix are still `scribe`.
 
@@ -215,7 +216,7 @@ These rules are inherited from the AHPRA project the plugin originally served. T
 
 2. **No colons in markdown headings**. Use ` - ` instead. `## Part 1 - Setup` not `## Part 1: Setup`. Colons cause filename compatibility issues when content syncs to local file systems.
 
-3. **Blank lines between list items**. When listing things in markdown, place a full blank line between each bullet so line breaks survive when content is pasted into external apps like Google Docs.
+3. **Blank lines for Google-Doc paragraph fidelity**. Markdown's single newline is a soft break, so lines collapse into one paragraph when converted into a Google Doc. When content is destined for a Google Doc, separate items with a blank line so each lands on its own paragraph, or use a real list marker (`- `) with a blank line before and after the list. This is not a blanket rule and not always about lists - it does not apply to SKILL.md files or local docs read as markdown, and the goal is not to force everything into structured lists. Use tight markdown in skill and local files.
 
 4. **Minimum word counts only**. All length guidance is a floor, never a ceiling. Don't truncate to fit.
 

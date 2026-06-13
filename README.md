@@ -132,7 +132,7 @@ You spend your morning on the work that actually needs you. Not the seams.
 
 ![Three-layer architecture](docs/images/architecture.png)
 
-Scribe is thirty skills organised in a three-layer architecture.
+Scribe is thirty-one skills organised in a three-layer architecture.
 
 1. **Orchestration router** - one skill that auto-loads on every Workspace request and routes between accounts, services, and workflows.
 
@@ -147,6 +147,7 @@ Each skill stays under 500 lines, so Claude reads only what it needs. The underl
 The first-run flow walks through Google Cloud Project setup and OAuth (5 to 10 minutes once per Workspace org).
 
 ```bash
+/scribe:start            # see what Scribe can do and which accounts are authenticated
 /scribe:auth-init        # one-time per org
 /scribe:auth-add EMAIL   # add another account to the token cache
 /scribe:auth-status      # list authenticated accounts
