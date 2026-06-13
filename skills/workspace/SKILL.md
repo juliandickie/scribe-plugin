@@ -97,17 +97,33 @@ When another plugin's tools are available in the session, Scribe defers domain-a
 
 Scribe never imports or directly calls other plugins' tool namespaces. Reference plugins by their user-facing names in skill prose ("if the ClickUp plugin is installed...") so the prose stays robust to plugin renames.
 
-## Sandbox and attachment rules
+## File and attachment handling
 
-The MCP server enforces a directory sandbox for file uploads via `ALLOWED_FILE_DIRS`. The plugin's manifest sets this to `~/.workspace-mcp/attachments`. Files outside that directory are rejected.
+Scribe references a file in three ways across tools. Pick by where the file already is, not by habit.
 
-- **Symlinks do not bypass the sandbox.** The server uses `realpath()` before checking.
+- **Already in Drive or on an email** - get an MCP URL from `get_drive_file_download_url` or `get_gmail_attachment_content` and pass it as the file reference. No local staging. This is the fast path for gmail attachments and for `create_drive_file`.
 
-- **Subdirectories of attachments are fine.** Use per-session or per-client subdirs.
+- **A genuinely-local file** (Desktop, a repo) - reference it by local path. This is the only mode bound by the `ALLOWED_FILE_DIRS` sandbox.
 
-- **Project repo paths fail.** Auto-copy files into `~/.workspace-mcp/attachments/scribe-session/` if they come from outside.
+- **Bytes in memory** - pass the content inline.
 
-The push skill (`skills/push/SKILL.md`) documents the auto-copy decision tree in detail. For workflow skills that handle attachments, link to that pattern rather than re-stating it.
+The param name for each mode differs per tool, which is the easy thing to get wrong -
+
+| Tool | Local-file param | Remote/URL param | Inline param |
+|---|---|---|---|
+| `send_gmail_message` / `draft_gmail_message` | `path` (in `attachments[]`) | `url` (in `attachments[]`) | `content` + `filename` |
+| `create_drive_file` | `fileUrl` with `file://` | `fileUrl` (http/https) | `content` |
+| `import_to_google_doc` | `file_path` (local or `file://`) | `file_url` (http/https) | `content` |
+
+The `ALLOWED_FILE_DIRS` sandbox (manifest default `~/.workspace-mcp/attachments`) applies to the local-file modes. It is verified for the gmail `path` mode and `import_to_google_doc` `file_path`. For local-file reads it behaves as -
+
+- **Symlinks do not bypass it.** The server uses `realpath()` before checking.
+
+- **Subdirectories are fine.** Use per-session or per-client subdirs.
+
+- **Project repo paths fail** by default. Stage the file into `~/.workspace-mcp/attachments/scribe-session/` first.
+
+For a file already in Drive or Gmail, the URL mode above skips staging entirely. When creating a Drive file from a local source, prefer the URL or inline `content` mode to avoid the sandbox question. The push skill (`skills/push/SKILL.md`) has the full staging decision tree; link to it rather than re-stating it.
 
 ## Enumerating authenticated accounts
 
