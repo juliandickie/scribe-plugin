@@ -118,6 +118,16 @@ Copy-Item $src.FullName "$env:USERPROFILE\.workspace-mcp\oauth_client.json"
 
 If the user prefers a different path, they can set `GOOGLE_CLIENT_SECRET_PATH` in their `~/.claude/settings.json` MCP env config to override the manifest default - but the canonical path works without any config edits.
 
+### Windows - set explicit paths before first run
+
+Claude Code may not expand `${HOME}` on Windows, which can leave the server unable to find the OAuth client or write credentials. If you are on Windows, add these to your project `.claude/settings.json` under `mcpServers.scribe.env` before first run, replacing `C:\\Users\\YourName` with your home directory. macOS and Linux expand `${HOME}` and need no override. This Windows path behaviour is not yet verified on a live Windows machine.
+
+```json
+"GOOGLE_CLIENT_SECRET_PATH": "C:\\Users\\YourName\\.workspace-mcp\\oauth_client.json",
+"WORKSPACE_MCP_CREDENTIALS_DIR": "C:\\Users\\YourName\\.workspace-mcp\\credentials",
+"ALLOWED_FILE_DIRS": "C:\\Users\\YourName\\.workspace-mcp\\attachments"
+```
+
 ## 6. Authenticate via Claude Code
 
 The workspace-mcp server is already running in the background (Claude Code starts it automatically via the plugin manifest). There is no need to run it manually.
@@ -136,7 +146,7 @@ The tool returns a Google authorization URL. Present it to the user as a clickab
 
 3. Wait for the browser to show a success or redirect page before closing it.
 
-The token is then written automatically to `~/.workspace-mcp/credentials/<email>.json`. The server uses it from this point forward without further prompts (the token auto-refreshes).
+The token is then written automatically to `~/.workspace-mcp/credentials/<email>.json`. The browser redirects back to the locally-running MCP server (started by the plugin manifest), which exchanges the code for the token; that is why the server must stay running until the success page appears. The server uses it from this point forward without further prompts (the token auto-refreshes).
 
 **Important:** Complete the browser consent before the auth session expires (usually a few minutes). If the authorization URL has expired before the user clicks Allow, call `start_google_auth` again to get a fresh URL.
 
