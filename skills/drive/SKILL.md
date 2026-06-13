@@ -51,7 +51,17 @@ Read file content for supported types.
 
 ### get_drive_file_download_url
 
-Get a download URL for a file.
+Get a reference to a Drive file's contents for a follow-up action.
+
+Parameters: `file_id`, `user_google_email`.
+
+Two follow-ups it enables -
+
+- Attach the file - pass the returned reference as a gmail attachment `url` (the send and draft tools name this tool explicitly) or as a `create_drive_file` `fileUrl`. No staging.
+
+- Read it locally - the file also lands in the managed attachments directory, so it can be read from disk after the call.
+
+See "File and attachment handling" in `workspace/SKILL.md` for how this fits the cross-tool file-reference model.
 
 ### create_drive_folder
 
