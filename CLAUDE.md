@@ -1,6 +1,6 @@
 # Scribe Plugin
 
-Context document for AI agents and contributors picking up this project in a new session. The README.md is for end users; this file is for whoever is editing the repo. Last refreshed 2026-06-14.
+Context document for AI agents and contributors picking up this project in a new session. The README.md is for end users; this file is for whoever is editing the repo. Last refreshed 2026-07-16.
 
 ## What this project is
 
@@ -47,7 +47,7 @@ Two repositories. This plugin and the upstream MCP server it wraps.
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-**Historical note.** A third repository, `juliandickie/google_workspace_mcp`, was a fork of taylorwilsdon's repo that staged PR #727 before merge. It is fully retired - no consumer pulls from it, the install path is PyPI, and it can be archived on GitHub at any time. Future contributions to upstream should be made by forking taylorwilsdon's repo directly for a single focused PR (the v1.0 path is the model), not by reactivating the old fork.
+**The fork.** A third repository, `juliandickie/google_workspace_mcp`, is our fork of taylorwilsdon's repo. It exists purely as the PR vehicle for upstream contributions (GitHub allows one fork per repo per account, so it persists between contributions) - no consumer pulls from it and the install path is always PyPI. It staged PR #727 in the v1.0 era and PR #929 (markdown table rendering, 2026-07-16). To contribute, sync the fork to mirror the latest upstream, cut a feature branch off upstream main in the reference clone at `~/code/repos/taylorwilsdon/google_workspace_mcp`, push the branch to the fork, and open a single focused PR - see "How to contribute more" below.
 
 A separate downstream consumer - `juliandickie/Documents/GitHub/ahpra-writing-research-cc` - uses workspace functionality via its own scripts. That repo has its own upstream pin and is unaffected by Scribe plugin changes; treat it as out-of-scope here.
 
@@ -238,6 +238,8 @@ grep -rn $'—' README.md docs/ skills/ scripts/ hooks/ Makefile && echo "FAIL -
 
 - **Issue #771** - configurable OAuth scope subset per install. Open as of 2026-05-08, awaiting taylor's design steer between Options A/B/C. Will become a PR from us once direction is chosen.
 
+- **PR #929** - opened 2026-07-16. Native GFM table rendering in `markdown_to_docs_requests` (tables previously flattened to pipe text on the populate_from_markdown path). Root-cause session documented in `~/code/scribe-table-fix/`. When it merges and ships in a PyPI release, bump the pin and re-run the table acceptance test through the real `manage_doc_tab` tool.
+
 ### What's in the PyPI package right now
 
 `workspace-mcp` v1.21.2 (released 2026-06-11) is the current pin. It includes everything from PRs #727 and #742 plus the 1.21.x additions (gmail `content_id` inline images, Office-to-Google import, contacts birthday fields, a socket-timeout hang fix) - all additive, with no breaking changes from the previous pin.
@@ -248,7 +250,7 @@ If a future user surfaces friction worth fixing -
 
 1. Plugin-level fixes (skill prose, manifest, docs, install flow) - patch this repo, cut a Scribe patch release. Examples - v0.2.1 added precondition checks and sandbox docs without touching upstream.
 
-2. MCP-server-level fixes (tool behaviour, scope handling, retry policy, new tools) - file an issue at taylorwilsdon/google_workspace_mcp first if it requires design discussion, or open a PR directly if the right answer is mechanically clear. The contribution pattern - fork taylorwilsdon's repo fresh, branch off its main, single focused PR, link any related issue. See the issue #731 and PR #742 thread for an example that worked. Do not reuse the old `juliandickie/google_workspace_mcp` fork - that was retired with v0.3.0; start from upstream.
+2. MCP-server-level fixes (tool behaviour, scope handling, retry policy, new tools) - file an issue at taylorwilsdon/google_workspace_mcp first if it requires design discussion, or open a PR directly if the right answer is mechanically clear. The contribution pattern - update our fork (`juliandickie/google_workspace_mcp`) to mirror the latest upstream (`gh repo sync juliandickie/google_workspace_mcp --source taylorwilsdon/google_workspace_mcp`), cut a feature branch off upstream main in the reference clone at `~/code/repos/taylorwilsdon/google_workspace_mcp`, push the branch to the fork, and open a single focused PR against upstream main, linking any related issue. PR #929 (2026-07-16) is the worked example of this flow; the issue #731 / PR #742 thread shows the issue-first variant. Base branches on upstream main, never on old fork branches.
 
 3. AHPRA-specific workflow concerns - those go in the AHPRA repo's `scripts/gdocs/` rather than here. Don't pull AHPRA conventions into this plugin's general-purpose surface.
 
@@ -310,7 +312,7 @@ For dedicated multi-plugin workflows, the right place is a separate meta-orchest
 
 - Don't add a `commands/` directory. Skills cover both auto-activation and user invocation per the current Claude Code spec.
 
-- Don't reference any `juliandickie/google_workspace_mcp` URL or branch (including the historical `fork-extension`) anywhere in user-facing files. That fork is retired. All install paths must reference `workspace-mcp@<version>` from PyPI, which builds from taylorwilsdon's main branch.
+- Don't reference any `juliandickie/google_workspace_mcp` URL or branch (including the historical `fork-extension`) anywhere in user-facing files. The fork is a PR vehicle only, never an install path. All install paths must reference `workspace-mcp@<version>` from PyPI, which builds from taylorwilsdon's main branch.
 
 - Don't include AHPRA-specific conventions in skill prose. The `client-resolve` skill is intentionally scoped as "AHPRA-style repo convention" and explicitly says it's a no-op in non-AHPRA repos. Don't extend other skills with AHPRA tab-label expectations or condition-id assumptions.
 
