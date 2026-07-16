@@ -71,6 +71,20 @@ Once the file is in an allowed location -
 
 Always pass `user_google_email` (either the --account override or the resolved default for the current context - check the nearest clients/{CLIENT-ID}/profile.md if working in an AHPRA-style repo).
 
+## Table integrity check - MANDATORY after any populate route
+
+Both populate routes above (`--tab-id`, and `--doc-id` without `--tab-id`) go through `manage_doc_tab populate_from_markdown`, whose table rendering fails SILENTLY on workspace-mcp pins that predate the 2026-07 converter table fix - every GFM table flattens to one paragraph of raw pipe text and the tool still reports success. The `import_to_google_doc` route is unaffected (Drive's native conversion renders tables correctly).
+
+If the source markdown contains any GFM table (a separator row like `|---|---|`), then after the populate succeeds -
+
+1. Run detailed `inspect_doc_structure` on the tab that was written.
+
+2. Check that the reported table count matches the number of tables in the source markdown AND that no paragraph text starts with `| `.
+
+3. If any table flattened, run the repair pass from the docs skill Gotchas - bottom-up per pipe-text table, `modify_doc_text` replaces `[start_index, end_index - 1]` with a single space, then `create_table_with_data` at `start_index + 1` with the 2D array parsed from the source markdown (always pass `tab_id`) - and re-inspect to confirm.
+
+Do not report the push complete until this check has passed. A re-synced Doc with flattened tables is the single most recurrent defect on this path.
+
 ## Auth precondition
 
 If the user has not authenticated any account yet, the call will fail with "No cached token" or similar. In that case, direct them to `/scribe:auth-init`.
