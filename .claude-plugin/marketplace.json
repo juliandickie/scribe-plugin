@@ -9,7 +9,7 @@
     {
       "name": "scribe",
       "description": "Google Workspace orchestration for Claude Code. Multi-account access to Gmail, Calendar, Drive, Docs, Sheets, Slides, Contacts, Tasks, Forms, and Chat. Ships 14 cross-service workflow commands plus 10 service skills. Wraps taylorwilsdon/google_workspace_mcp.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "source": "./",
       "author": {
         "name": "Julian Dickie",
