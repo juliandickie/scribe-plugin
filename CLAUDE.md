@@ -1,6 +1,6 @@
 # Scribe Plugin
 
-Context document for AI agents and contributors picking up this project in a new session. The README.md is for end users; this file is for whoever is editing the repo. Last refreshed 2026-07-16.
+Context document for AI agents and contributors picking up this project in a new session. The README.md is for end users; this file is for whoever is editing the repo. Last refreshed 2026-08-28.
 
 ## What this project is
 
@@ -14,13 +14,13 @@ A Claude Code plugin that wraps [taylorwilsdon's `workspace-mcp`](https://github
 
 The plugin's distinctive value is the integration polish, not the underlying MCP server's capability. The capability is upstream's. We made the install one command, the OAuth setup five minutes, and the cross-Workspace-org workflow tractable.
 
-## Current state - as of 2026-06-14
+## Current state - as of 2026-08-28
 
-- **Plugin version** - 1.1.0 (in plugin.json + marketplace.json)
-- **Pinned upstream version** - `workspace-mcp@1.21.2` from PyPI
-- **Distribution** - GitHub at `juliandickie/scribe-plugin`, public, MIT licensed, with v1.1.0 release tagged
+- **Plugin version** - 1.2.0 (in plugin.json + marketplace.json)
+- **Pinned upstream version** - `workspace-mcp@1.25.2` from PyPI
+- **Distribution** - GitHub at `juliandickie/scribe-plugin`, public, MIT licensed, with v1.2.0 release tagged
 - **Marketplace install** - `/plugin marketplace add juliandickie/scribe-plugin` then `/plugin install scribe`
-- **Direct download** - `https://github.com/juliandickie/scribe-plugin/archive/refs/tags/v1.1.0.zip`
+- **Direct download** - `https://github.com/juliandickie/scribe-plugin/archive/refs/tags/v1.2.0.zip`
 - **Skill count** - 31 (6 existing infra + 1 orchestration + 10 service + 14 workflow)
 - **Tools enabled** - all 12 workspace-mcp tool groups
 - **Open issues for next dev cycle** (as of 2026-05-27) - tracked in `docs/issues/`. Most recent entry - [`populate-from-markdown-table-rendering.md`](docs/issues/populate-from-markdown-table-rendering.md) covering the GFM table rendering bug in `manage_doc_tab populate_from_markdown` plus 4 adjacent observations, captured from a multi-table Doc rebuild on the iDD LPIS social media plan.
@@ -37,7 +37,7 @@ Two repositories. This plugin and the upstream MCP server it wraps.
 │ Our umbrella issue #731 produced PR #742; merged 2026-05-01.         │
 │ Pending - upstream issue #771 (configurable scopes, design phase).   │
 └─────────────────────────────────────▲────────────────────────────────┘
-                                      │ uvx pulls workspace-mcp@1.21.2
+                                      │ uvx pulls workspace-mcp@1.25.2
                                       │ from PyPI
                                       │
 ┌─────────────────────────────────────┴────────────────────────────────┐
@@ -196,8 +196,8 @@ For releases with substantive changes, draft custom release notes via `gh releas
 
 When taylorwilsdon ships a new release of `workspace-mcp` -
 
-1. Bump the pin in `.claude-plugin/plugin.json` `mcpServers.scribe.args[0]` from `workspace-mcp@1.21.2` to the new version
-2. Bump the same in `hooks/post-install.sh` `WORKSPACE_MCP_VERSION="1.21.2"`
+1. Bump the pin in `.claude-plugin/plugin.json` `mcpServers.scribe.args[0]` from `workspace-mcp@1.25.2` to the new version
+2. Bump the same in `hooks/post-install.sh` `WORKSPACE_MCP_VERSION`
 3. Bump every other occurrence of the version string - it is scattered across more than the old "5 files." Find them all with `grep -rn 'workspace-mcp@' .` (the `--permissions` example in `skills/auth-init/SKILL.md`, the run commands in `docs/multi-org-setup.md`, the "tools exposed by workspace-mcp@<ver>" stamps in `docs/services.md` and the tasks/forms/sheets/chat/contacts/slides service skills, plus `README.md` and this file's state lines)
 4. Test the update locally - install the plugin, run `/scribe:auth-status`, push a sample markdown file
 5. Run `make publish VERSION=...`
@@ -238,11 +238,11 @@ grep -rn $'—' README.md docs/ skills/ scripts/ hooks/ Makefile && echo "FAIL -
 
 - **Issue #771** - configurable OAuth scope subset per install. Open as of 2026-05-08, awaiting taylor's design steer between Options A/B/C. Will become a PR from us once direction is chosen.
 
-- **PR #929** - opened 2026-07-16. Native GFM table rendering in `markdown_to_docs_requests` (tables previously flattened to pipe text on the populate_from_markdown path). Root-cause session documented in `~/code/scribe-table-fix/`. When it merges and ships in a PyPI release, bump the pin and re-run the table acceptance test through the real `manage_doc_tab` tool.
+- **PR #929** - opened 2026-07-16. Native GFM table rendering in `markdown_to_docs_requests` (tables previously flattened to pipe text on the populate_from_markdown path). Root-cause session documented in `~/code/scribe-table-fix/`. All CodeRabbit feedback addressed (UTF-16 offset counting writer-wide in ce9fc23, surrogatepass in 38bef3a). Re-verified 2026-08-28 against upstream main at v1.25.2 - merges cleanly, full suite passes on the merge result (1880 passed, 2 skipped) - and pinged Taylor on the PR the same day. When it merges and ships in a PyPI release, bump the pin and re-run the table acceptance test through the real `manage_doc_tab` tool.
 
 ### What's in the PyPI package right now
 
-`workspace-mcp` v1.21.2 (released 2026-06-11) is the current pin. It includes everything from PRs #727 and #742 plus the 1.21.x additions (gmail `content_id` inline images, Office-to-Google import, contacts birthday fields, a socket-timeout hang fix) - all additive, with no breaking changes from the previous pin.
+`workspace-mcp` v1.25.2 (released 2026-08-28) is the current pin, bumped from 1.21.2 on 2026-08-28. The tool surface was verified against a live MCP handshake of both versions - zero tools added or removed (122 tools), 22 tools gained additive parameters, and one schema change - `set_publish_settings` (Forms) replaced `publish_as_template`/`require_authentication` with `is_published`/`is_accepting_responses`. Highlights of the 1.22-1.25 span - Gmail reply threading fixed end to end (drafts and sends attach to the original thread, target the latest real message, `reply_all`/`quote_original`/`forward_message_id` on `send_gmail_message`), `read_sheet_values` no longer silently truncates at 50 rows (open-ended ranges clamp at 1000), `search_drive_files` excludes trashed files by default (`include_trashed` opts back in), `update_drive_file` gains append/prepend modes, table header pinning via `create_table_with_data header_rows` and `batch_update_doc` `pin_table_header_rows`/`update_table_row_style` operations, per-edge border control on `update_paragraph_style`, speaker notes on `get_presentation`, third-party conferencing and per-end timezones on `manage_event`, `update_script_content` merges by default (`merge=False` restores full replacement), camelCase argument aliasing middleware, and several CVE-driven dependency raises. NOT included - the GFM table fix from our PR #929, which is still unmerged upstream; `populate_from_markdown` still flattens tables in 1.25.2, so the verification-and-repair guidance in the docs/push/workspace skills remains load-bearing.
 
 ### How to contribute more
 

@@ -42,6 +42,8 @@ Parameters:
 
 - `max_results` (optional) - cap the number of returned messages
 
+- `include_headers` (optional) - adds Subject, From, and Date to each result row, so triage does not need a second content call. Default output is unchanged when omitted.
+
 Returns: list of message metadata (id, thread_id, subject, snippet, from, date).
 
 ### get_gmail_message_content
@@ -53,6 +55,8 @@ Parameters:
 - `message_id`
 
 - `user_google_email`
+
+- `full` (optional) - return the complete message with no truncation limit. In the stdio deployment Scribe uses, a large body is saved to the attachments directory and the file path returned. Works with all `body_format` values including `raw` (byte-exact `.eml`).
 
 Returns: full message body (text or HTML), headers, attachment metadata.
 
@@ -102,19 +106,27 @@ Returns: attachment bytes or saved-to-disk reference.
 
 ### send_gmail_message
 
-Send a new message.
+Send a new message, reply, or forward.
 
 Parameters:
 
-- `to`, `subject`, `body` (required)
+- `to`, `subject`, `body` - pass all three for a plain send (the schema no longer hard-requires them because replies and forwards can derive them)
 
 - `cc`, `bcc` (optional)
 
+- `thread_id`, `in_reply_to`, `references`, `quote_original` - reply threading; given only `thread_id`, the reply targets the latest non-draft, non-trash message in the thread
+
+- `reply_all` - derive recipients from the thread (your own address and Send As alias excluded); with it, `to` becomes optional
+
+- `forward_message_id` plus `include_forwarded_attachments` - forward an existing message, attachments included
+
 - `user_google_email`
+
+The gmail service skill documents the full optional surface (body_format, Send As aliases, signatures, attachments).
 
 ### draft_gmail_message
 
-Create a draft. Same parameter shape as send.
+Create a draft. Same parameter shape as send, except `to` is optional for a draft.
 
 ### modify_gmail_message_labels
 
@@ -132,11 +144,11 @@ Parameters:
 
 ### batch_modify_gmail_message_labels
 
-Bulk label changes across many messages in one call.
+Bulk label changes across many messages in one call. Optional `verify` re-reads the messages afterwards and reports what Gmail actually changed rather than echoing the request (Gmail silently no-ops some label changes).
 
 ### list_gmail_labels
 
-List available labels (system + user).
+List available labels (system + user). Optional `prefix`, `compact`, and `include_system` filter the label tree - on label-heavy accounts a prefix filter cuts the response from tens of KB to under one.
 
 ### manage_gmail_label
 
@@ -241,9 +253,11 @@ Parameters:
 
 - `max_results` (optional)
 
+- `single_events` (optional) - view recurring events as individual occurrences instead of a collapsed series. Handles exceptions, cancellations, and series that started in the past.
+
 - `user_google_email`
 
-Returns: list of event metadata (id, summary, start, end, attendees, location, description).
+Returns: list of event metadata (id, summary, start, end, attendees, location, description). Start and end boundaries are annotated with the offset-local weekday, and all-day ends are marked exclusive.
 
 ### manage_event
 
@@ -255,7 +269,9 @@ Parameters:
 
 - `event_id` - required for update, delete, and rsvp
 
-- Event fields: `summary`, `start_time`, `end_time`, `attendees`, `description`, `location`, `timezone`, etc.
+- Event fields: `summary`, `start_time`, `end_time`, `attendees`, `description`, `location`, `timezone`, etc. `start_timezone` and `end_timezone` allow different IANA zones per boundary (flights, cross-timezone calls).
+
+- Conferencing: `conference_provider` plus `conference_uri` (and optional `conference_passcode`, `conference_id`) attach a Zoom, Webex, or Teams meeting; a raw `conference_data` block gives full control. Native Google Meet remains the default behaviour.
 
 - `response` - for `rsvp` action only: `"accepted"`, `"declined"`, `"tentative"`, `"needsAction"`
 
@@ -480,11 +496,11 @@ Insert an image into the doc.
 
 ### create_table_with_data
 
-Create a table populated from a 2D array.
+Create a table populated from a 2D array. Optional `header_rows` pins the leading N rows so they repeat after every page break. Reports PARTIAL SUCCESS (with the effective index) when the table is created but a follow-up styling step does not fully apply - check the response, not just the absence of an error.
 
 ### update_paragraph_style
 
-Apply paragraph styling.
+Apply paragraph styling. Supports per-edge border control via `border_edges`, `border_color`, `border_width`, `border_dash`, and `border_padding`.
 
 ### update_doc_headers_footers
 
@@ -583,6 +599,8 @@ Parameters:
 
 - `user_google_email`
 
+- `include_trashed` (optional) - trashed files are excluded by default (matching the Drive web UI); pass true to include them. An explicit `trashed` clause in your own query still wins.
+
 ### list_drive_items
 
 List contents of a folder.
@@ -615,7 +633,7 @@ Parameters:
 
 ### create_drive_file
 
-Create a Drive file from content.
+Create a Drive file from content. Accepts inline text content, a `fileUrl` reference, or inline binary via `base64_content` (with optional `base64_sha256` integrity check and `content_mime_type`) - no separate upload step needed for binary files.
 
 ### copy_drive_file
 
@@ -625,7 +643,7 @@ Parameters: `file_id`, `destination_folder_id`, `new_name` (optional).
 
 ### update_drive_file
 
-Update file metadata.
+Update file metadata or content. Content updates take a `mode` of `replace` (default), `append`, or `prepend`, and keep non-Google targets (`.md`, `.txt`, `.pdf`) in their original format instead of forcing a Docs conversion. Metadata updates on a shortcut target the shortcut itself, not the underlying file.
 
 ### manage_drive_access
 
@@ -734,7 +752,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.21.2 for Sheets. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.25.2 for Sheets. Pass `user_google_email` on every call.
 
 ### list_spreadsheets
 
@@ -752,7 +770,7 @@ Read cell values for an A1-notated range.
 
 Parameters: `spreadsheet_id`, `range` (e.g. `"Sheet1!A1:C10"`), `user_google_email`.
 
-Returns: 2D array of cell values.
+Returns: 2D array of cell values. Every row in the range is returned (no silent truncation), but open-ended or oversized ranges are clamped to 1000 rows before the request - bound the volume with an explicit `range` when reading large sheets.
 
 ### modify_sheet_values
 
@@ -865,7 +883,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.21.2 for Slides. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.25.2 for Slides. Pass `user_google_email` on every call.
 
 ### create_presentation
 
@@ -877,7 +895,7 @@ Parameters: `title`, optional `parent_folder_id`, `user_google_email`.
 
 Read a presentation's full structure - all pages (slides), all elements, layouts.
 
-Parameters: `presentation_id`, `user_google_email`.
+Parameters: `presentation_id`, `user_google_email`, optional `include_speaker_notes` (returns each slide's notes text plus the editable notes shape ID, so notes can be replaced or appended through `batch_update_presentation`).
 
 ### batch_update_presentation
 
@@ -968,7 +986,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.21.2 for Contacts. Pass `user_google_email` on every call. Mutations (create/update/delete) flow through `manage_contact` or `manage_contacts_batch` with action verbs.
+The following tools are exposed by workspace-mcp@1.25.2 for Contacts. Pass `user_google_email` on every call. Mutations (create/update/delete) flow through `manage_contact` or `manage_contacts_batch` with action verbs.
 
 ### list_contacts
 
@@ -1091,7 +1109,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.21.2 for Tasks. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.25.2 for Tasks. Pass `user_google_email` on every call.
 
 ### list_task_lists
 
@@ -1236,7 +1254,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.21.2 for Forms. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.25.2 for Forms. Pass `user_google_email` on every call.
 
 ### create_form
 
@@ -1264,7 +1282,7 @@ Parameters: `form_id`, `user_google_email`.
 
 Publish or unpublish a form, control who can respond.
 
-Parameters: `form_id`, settings fields, `user_google_email`.
+Parameters: `form_id`, `is_published`, `is_accepting_responses`, `user_google_email`. (The pre-1.25 `publish_as_template` and `require_authentication` fields were removed upstream; do not pass them.)
 
 ### get_form_response
 
@@ -1365,7 +1383,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.21.2 for Google Chat. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.25.2 for Google Chat. Pass `user_google_email` on every call.
 
 ### list_spaces
 

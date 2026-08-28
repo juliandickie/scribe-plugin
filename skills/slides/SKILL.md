@@ -1,6 +1,6 @@
 ---
 description: Use when the user's request involves Google Slides - reading or updating slide content, creating presentations, modifying slide elements, generating decks from outlines. Triggers on presentation, deck, slide, slides, slideshow.
-last-validated: 2026-05-15
+last-validated: 2026-08-28
 ---
 
 # Scribe - Slides
@@ -23,7 +23,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.21.2 for Slides. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.25.2 for Slides. Pass `user_google_email` on every call.
 
 ### create_presentation
 
@@ -35,7 +35,7 @@ Parameters: `title`, optional `parent_folder_id`, `user_google_email`.
 
 Read a presentation's full structure - all pages (slides), all elements, layouts.
 
-Parameters: `presentation_id`, `user_google_email`.
+Parameters: `presentation_id`, `user_google_email`, optional `include_speaker_notes` (returns each slide's notes text plus the editable notes shape ID, so notes can be replaced or appended through `batch_update_presentation`).
 
 ### batch_update_presentation
 

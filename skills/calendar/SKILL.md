@@ -1,6 +1,6 @@
 ---
 description: Use when the user's request involves Google Calendar - reading events, creating meetings, checking availability, managing focus time or out-of-office, listing calendars, or any scheduling operation. Triggers on calendar, event, meeting, schedule, availability, free/busy, OOO, focus time.
-last-validated: 2026-05-15
+last-validated: 2026-08-28
 ---
 
 # Scribe - Calendar
@@ -37,9 +37,11 @@ Parameters:
 
 - `max_results` (optional)
 
+- `single_events` (optional) - view recurring events as individual occurrences instead of a collapsed series. Handles exceptions, cancellations, and series that started in the past.
+
 - `user_google_email`
 
-Returns: list of event metadata (id, summary, start, end, attendees, location, description).
+Returns: list of event metadata (id, summary, start, end, attendees, location, description). Start and end boundaries are annotated with the offset-local weekday, and all-day ends are marked exclusive.
 
 ### manage_event
 
@@ -51,7 +53,9 @@ Parameters:
 
 - `event_id` - required for update, delete, and rsvp
 
-- Event fields: `summary`, `start_time`, `end_time`, `attendees`, `description`, `location`, `timezone`, etc.
+- Event fields: `summary`, `start_time`, `end_time`, `attendees`, `description`, `location`, `timezone`, etc. `start_timezone` and `end_timezone` allow different IANA zones per boundary (flights, cross-timezone calls).
+
+- Conferencing: `conference_provider` plus `conference_uri` (and optional `conference_passcode`, `conference_id`) attach a Zoom, Webex, or Teams meeting; a raw `conference_data` block gives full control. Native Google Meet remains the default behaviour.
 
 - `response` - for `rsvp` action only: `"accepted"`, `"declined"`, `"tentative"`, `"needsAction"`
 

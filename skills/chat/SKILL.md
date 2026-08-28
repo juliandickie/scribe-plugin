@@ -1,6 +1,6 @@
 ---
 description: Use when the user's request involves Google Chat - sending messages to spaces, reading channel history, managing Google Chat threads, searching messages, reactions. Triggers on Google Chat, Chat message, Chat space, gchat. Does NOT trigger on Slack - that goes to the Slack plugin if present.
-last-validated: 2026-05-15
+last-validated: 2026-08-28
 ---
 
 # Scribe - Chat
@@ -25,7 +25,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.21.2 for Google Chat. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.25.2 for Google Chat. Pass `user_google_email` on every call.
 
 ### list_spaces
 

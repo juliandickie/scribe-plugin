@@ -1,6 +1,6 @@
 ---
 description: Use when the user's request involves Google Forms - reading form responses, creating new forms, modifying form structure, analysing survey results. Triggers on form, survey, response, questionnaire, form responses.
-last-validated: 2026-05-15
+last-validated: 2026-08-28
 ---
 
 # Scribe - Forms
@@ -23,7 +23,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.21.2 for Forms. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.25.2 for Forms. Pass `user_google_email` on every call.
 
 ### create_form
 
@@ -51,7 +51,7 @@ Parameters: `form_id`, `user_google_email`.
 
 Publish or unpublish a form, control who can respond.
 
-Parameters: `form_id`, settings fields, `user_google_email`.
+Parameters: `form_id`, `is_published`, `is_accepting_responses`, `user_google_email`. (The pre-1.25 `publish_as_template` and `require_authentication` fields were removed upstream; do not pass them.)
 
 ### get_form_response
 

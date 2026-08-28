@@ -1,6 +1,6 @@
 ---
 description: Use when the user's request involves Google Sheets - reading cell values, writing data, appending rows, working with ranges in A1 notation, formulas, formatting, or creating new spreadsheets. Triggers on spreadsheet, sheet, rows, columns, cells, range, formula, csv data.
-last-validated: 2026-05-15
+last-validated: 2026-08-28
 ---
 
 # Scribe - Sheets
@@ -25,7 +25,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.21.2 for Sheets. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.25.2 for Sheets. Pass `user_google_email` on every call.
 
 ### list_spreadsheets
 
@@ -43,7 +43,7 @@ Read cell values for an A1-notated range.
 
 Parameters: `spreadsheet_id`, `range` (e.g. `"Sheet1!A1:C10"`), `user_google_email`.
 
-Returns: 2D array of cell values.
+Returns: 2D array of cell values. Every row in the range is returned (no silent truncation), but open-ended or oversized ranges are clamped to 1000 rows before the request - bound the volume with an explicit `range` when reading large sheets.
 
 ### modify_sheet_values
 

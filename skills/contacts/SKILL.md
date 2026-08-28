@@ -1,6 +1,6 @@
 ---
 description: Use when the user's request involves Google Contacts - looking up a person by name or email, creating contacts, searching the address book, or enriching email addresses with contact metadata. Triggers on contact, person, address book, who is X.
-last-validated: 2026-05-15
+last-validated: 2026-08-28
 ---
 
 # Scribe - Contacts
@@ -23,7 +23,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.21.2 for Contacts. Pass `user_google_email` on every call. Mutations (create/update/delete) flow through `manage_contact` or `manage_contacts_batch` with action verbs.
+The following tools are exposed by workspace-mcp@1.25.2 for Contacts. Pass `user_google_email` on every call. Mutations (create/update/delete) flow through `manage_contact` or `manage_contacts_batch` with action verbs.
 
 ### list_contacts
 

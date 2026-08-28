@@ -1,6 +1,6 @@
 ---
 description: Use when the user's request involves Gmail - reading emails, searching threads, sending or drafting messages, managing labels, batch label modifications, or any inbox operation. Triggers on words like email, inbox, message, thread, label, draft, send, reply, forward, archive.
-last-validated: 2026-05-15
+last-validated: 2026-08-28
 ---
 
 # Scribe - Gmail
@@ -37,6 +37,8 @@ Parameters:
 
 - `max_results` (optional) - cap the number of returned messages
 
+- `include_headers` (optional) - adds Subject, From, and Date to each result row, so triage does not need a second content call. Default output is unchanged when omitted.
+
 Returns: list of message metadata (id, thread_id, subject, snippet, from, date).
 
 ### get_gmail_message_content
@@ -48,6 +50,8 @@ Parameters:
 - `message_id`
 
 - `user_google_email`
+
+- `full` (optional) - return the complete message with no truncation limit. In the stdio deployment Scribe uses, a large body is saved to the attachments directory and the file path returned. Works with all `body_format` values including `raw` (byte-exact `.eml`).
 
 Returns: full message body (text or HTML), headers, attachment metadata.
 
@@ -97,7 +101,7 @@ Returns: attachment bytes or saved-to-disk reference.
 
 ### send_gmail_message
 
-Send a new message. Required - `to`, `subject`, `body`, `user_google_email`.
+Send a new message, reply, or forward. For a plain new message pass `to`, `subject`, `body`, `user_google_email`. The schema no longer hard-requires `to`/`subject`/`body` because replies and forwards can derive them - still treat them as required for a plain send.
 
 Key optional params (the live tool schema carries the full list and defaults; these are the ones that change behaviour) -
 
@@ -111,11 +115,15 @@ Key optional params (the live tool schema carries the full list and defaults; th
 
 - `attachments` - see the Attachments subsection below.
 
-- `thread_id`, `in_reply_to`, `references`, `quote_original` - reply threading. `quote_original` requires `thread_id`.
+- `thread_id`, `in_reply_to`, `references`, `quote_original` - reply threading. `quote_original` requires `thread_id`. Given only `thread_id`, the reply targets the latest non-draft, non-trash message in the thread.
+
+- `reply_all` - derive recipients from the thread (your own address and Send As alias excluded). With `reply_all`, `to` becomes optional.
+
+- `forward_message_id` plus `include_forwarded_attachments` - forward an existing message, attachments included.
 
 ### draft_gmail_message
 
-Create a draft. Same surface as `send_gmail_message`, with one difference - `to` is optional for a draft (you can save a recipient-less draft) but required for send. This is the default for any reply you are not explicitly told to send.
+Create a draft. Same surface as `send_gmail_message`. `to` is optional for a draft (you can save a recipient-less draft); for a plain send, still supply it. This is the default for any reply you are not explicitly told to send. Drafted replies attach to their thread and appear inline in the original conversation.
 
 ### Attachments (send and draft)
 
@@ -147,11 +155,11 @@ Parameters:
 
 ### batch_modify_gmail_message_labels
 
-Bulk label changes across many messages in one call.
+Bulk label changes across many messages in one call. Optional `verify` re-reads the messages afterwards and reports what Gmail actually changed rather than echoing the request (Gmail silently no-ops some label changes).
 
 ### list_gmail_labels
 
-List available labels (system + user).
+List available labels (system + user). Optional `prefix`, `compact`, and `include_system` filter the label tree - on label-heavy accounts a prefix filter cuts the response from tens of KB to under one.
 
 ### manage_gmail_label
 

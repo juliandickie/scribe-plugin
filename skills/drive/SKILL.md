@@ -1,6 +1,6 @@
 ---
 description: Use when the user's request involves Google Drive - folders, files, file uploads, file sharing, permissions, public access checks, or any Drive content operation. Triggers on Drive, folder, file, upload, share, permissions, Drive URL, file ID.
-last-validated: 2026-05-15
+last-validated: 2026-08-28
 ---
 
 # Scribe - Drive
@@ -34,6 +34,8 @@ Parameters:
 - `query` - Drive query syntax like `name contains 'X' and mimeType = 'application/vnd.google-apps.folder'`
 
 - `user_google_email`
+
+- `include_trashed` (optional) - trashed files are excluded by default (matching the Drive web UI); pass true to include them. An explicit `trashed` clause in your own query still wins.
 
 ### list_drive_items
 
@@ -77,7 +79,7 @@ Parameters:
 
 ### create_drive_file
 
-Create a Drive file from content.
+Create a Drive file from content. Accepts inline text content, a `fileUrl` reference, or inline binary via `base64_content` (with optional `base64_sha256` integrity check and `content_mime_type`) - no separate upload step needed for binary files.
 
 ### copy_drive_file
 
@@ -87,7 +89,7 @@ Parameters: `file_id`, `destination_folder_id`, `new_name` (optional).
 
 ### update_drive_file
 
-Update file metadata.
+Update file metadata or content. Content updates take a `mode` of `replace` (default), `append`, or `prepend`, and keep non-Google targets (`.md`, `.txt`, `.pdf`) in their original format instead of forcing a Docs conversion. Metadata updates on a shortcut target the shortcut itself, not the underlying file.
 
 ### manage_drive_access
 

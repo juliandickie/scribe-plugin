@@ -1,6 +1,6 @@
 ---
 description: Use when the user's request involves Google Tasks - reading or creating to-do items, managing checklists, marking tasks complete, working with task lists. Triggers on task, to-do, checklist, action item, google tasks. Does NOT trigger on ClickUp or other PM-system tasks - those go to their respective plugins.
-last-validated: 2026-05-15
+last-validated: 2026-08-28
 ---
 
 # Scribe - Tasks
@@ -21,7 +21,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.21.2 for Tasks. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.25.2 for Tasks. Pass `user_google_email` on every call.
 
 ### list_task_lists
 
