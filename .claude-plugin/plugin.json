@@ -1,6 +1,6 @@
 {
   "name": "scribe",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Scribe - Google Workspace orchestration for Claude Code. Multi-account access to Gmail, Calendar, Drive, Docs, Sheets, Slides, Contacts, Tasks, Forms, and Chat. Ships 14 cross-service workflow commands plus 10 service skills. Wraps taylorwilsdon/google_workspace_mcp.",
   "author": {
     "name": "Julian Dickie",
@@ -33,7 +33,7 @@
     "scribe": {
       "command": "uvx",
       "args": [
-        "workspace-mcp@1.25.2",
+        "workspace-mcp@1.26.1",
         "--tools",
         "appscript",
         "calendar",

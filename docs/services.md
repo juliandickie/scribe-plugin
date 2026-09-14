@@ -752,7 +752,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.25.2 for Sheets. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.26.1 for Sheets. Pass `user_google_email` on every call.
 
 ### list_spreadsheets
 
@@ -883,7 +883,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.25.2 for Slides. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.26.1 for Slides. Pass `user_google_email` on every call.
 
 ### create_presentation
 
@@ -986,7 +986,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.25.2 for Contacts. Pass `user_google_email` on every call. Mutations (create/update/delete) flow through `manage_contact` or `manage_contacts_batch` with action verbs.
+The following tools are exposed by workspace-mcp@1.26.1 for Contacts. Pass `user_google_email` on every call. Mutations (create/update/delete) flow through `manage_contact` or `manage_contacts_batch` with action verbs.
 
 ### list_contacts
 
@@ -1109,7 +1109,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.25.2 for Tasks. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.26.1 for Tasks. Pass `user_google_email` on every call.
 
 ### list_task_lists
 
@@ -1254,7 +1254,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.25.2 for Forms. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.26.1 for Forms. Pass `user_google_email` on every call.
 
 ### create_form
 
@@ -1383,7 +1383,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.25.2 for Google Chat. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.26.1 for Google Chat. Pass `user_google_email` on every call.
 
 ### list_spaces
 

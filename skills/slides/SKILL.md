@@ -23,7 +23,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.25.2 for Slides. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@1.26.1 for Slides. Pass `user_google_email` on every call.
 
 ### create_presentation
 
