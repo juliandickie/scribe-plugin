@@ -37,6 +37,8 @@ Parameters:
 
 - `include_trashed` (optional) - trashed files are excluded by default (matching the Drive web UI); pass true to include them. An explicit `trashed` clause in your own query still wins.
 
+- `corpora`, `drive_id`, `include_items_from_all_drives` (optional) - Shared Drive items are already included by default (`include_items_from_all_drives` defaults to true), so a plain query finds Docs in Shared Drives without `corpora`. Pass `drive_id` to search one Shared Drive only.
+
 ### list_drive_items
 
 List contents of a folder.
@@ -71,9 +73,9 @@ Create a folder.
 
 Parameters:
 
-- `name`
+- `folder_name`
 
-- `parent_folder_id`
+- `parent_folder_id` (optional, defaults to `root`; a folder inside a Shared Drive works)
 
 - `user_google_email`
 
@@ -121,7 +123,7 @@ Get a shareable URL for a file.
 
 Convert and import a local file as a new Google Doc.
 
-Parameters: `file_path` (sandbox-bound to `~/.workspace-mcp/attachments`), `source_format`, `parent_folder_id` (optional), `user_google_email`. See `skills/push/SKILL.md` for the sandbox auto-copy decision tree.
+Parameters: `file_name` (required), `file_path` (sandbox-bound to `~/.workspace-mcp/attachments`), `source_format`, `folder_id` (optional), `user_google_email`. See `skills/push/SKILL.md` for the sandbox auto-copy decision tree.
 
 ## Common patterns
 
@@ -160,6 +162,8 @@ Parameters: `file_path` (sandbox-bound to `~/.workspace-mcp/attachments`), `sour
 - `search_drive_files` requires Drive query syntax (different from Gmail query). See https://developers.google.com/drive/api/guides/search-files.
 
 - The Shared Drive distinction matters - files in Shared Drives have a `driveId` and different sharing semantics from My Drive files.
+
+- An empty `search_drive_files` result is almost always the name terms, not the drive scope. `name contains` matches whole words from the start of a word, so every term must appear in the real file name - a query for 'CPD Quiz Master' finds nothing when the files are named '... - Quiz Master'. Loosen or drop terms before reaching for `corpora`. Checked 2026-10-01 on 1.26.1 - a grouped query like `(name contains 'A' or name contains 'B') and name contains 'C'` returned the same Shared Drive Docs with and without `corpora: allDrives`.
 
 ## Account selection
 

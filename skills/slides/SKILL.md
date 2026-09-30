@@ -29,7 +29,7 @@ The following tools are exposed by workspace-mcp@1.26.1 for Slides. Pass `user_g
 
 Create a new presentation (new file in Drive).
 
-Parameters: `title`, optional `parent_folder_id`, `user_google_email`.
+Parameters: `title`, `user_google_email`. No folder parameter on the pinned 1.26.1 - it lands in My Drive root; move it with `update_drive_file`.
 
 ### get_presentation
 

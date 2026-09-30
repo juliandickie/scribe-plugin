@@ -1,6 +1,6 @@
 ---
-description: Use when the user's request involves Google Docs - reading or updating document content, working with specific tabs, batch updates, find-and-replace, headers/footers, or document structure. Triggers on Google Doc, document, doc tab, tab structure, find and replace, doc URL.
-last-validated: 2026-08-28
+description: Use when the user's request involves Google Docs - reading or updating document content, working with specific tabs, filling a tab from a markdown file, batch updates, find-and-replace, headers/footers, or document structure. Triggers on Google Doc, document, doc tab, tab structure, tab URL, sync markdown to a doc, find and replace, doc URL.
+last-validated: 2026-10-01
 ---
 
 # Scribe - Docs
@@ -41,7 +41,9 @@ Parameters: `document_id`, `user_google_email`.
 
 Enumerate tabs, headings, structure.
 
-Parameters: `document_id`, `user_google_email`. Returns: tab list with IDs and titles, heading hierarchy.
+Parameters: `document_id`, `user_google_email`, optional `tab_id`, `detailed`. Returns: tab list with IDs and titles, heading hierarchy.
+
+Without `tab_id` it reports the FIRST tab's statistics (including up to 100 `empty_paragraph_ranges`) alongside the `tabs` list. When you only need tab ids and titles, call it with no `tab_id` and `detailed=false` and read only `tabs`; from the shell, the helper's `--list-tabs` prints just the ids, titles and tab URLs (see "Populate a tab from a file" below).
 
 ### manage_doc_tab
 
@@ -65,11 +67,17 @@ Parameters:
 
 - `user_google_email`
 
+`markdown_text` is inline only, so the whole tab passes through the session's context. For content that already sits in a file, use the helper below instead.
+
+The `create` result carries the new `tab_id` but its `link` is the plain Doc URL. A tab's shareable URL is the Doc URL plus `?tab=<tab id>`, for example `https://docs.google.com/document/d/<doc id>/edit?tab=t.abc123`. Build it yourself whenever a tab link goes into a task, an email or a report.
+
 ### create_doc
 
 Create a new doc.
 
-Parameters: `title`, `parent_folder_id` (optional), `user_google_email`.
+Parameters: `title`, optional `content` (plain text), `user_google_email`. There is no folder parameter on the pinned 1.26.1 - the Doc lands in My Drive root, so move it with `update_drive_file` (`add_parents`, `remove_parents`) when it belongs in a folder.
+
+The new Doc has a single tab titled "Tab 1" (`t.0`). If the Doc will hold named tabs, rename it with `manage_doc_tab rename` rather than leaving "Tab 1" in place.
 
 ### import_to_google_doc
 
@@ -77,13 +85,17 @@ Convert and import a local file into a new Google Doc.
 
 Parameters:
 
-- `file_path` - sandbox-bound (see push/SKILL.md)
+- `file_name` (required) - name of the new Doc (any extension is ignored)
 
-- `source_format` - `"md"`, `"txt"`, `"html"`, `"docx"`, `"odt"`, `"rtf"`
+- `file_path` - sandbox-bound (see push/SKILL.md); or `file_url` (http/https), or inline `content`
 
-- `parent_folder_id` (optional)
+- `source_format` - `"md"`, `"txt"`, `"html"`, `"docx"`, `"odt"`, `"rtf"` (auto-detected from the file name when omitted)
+
+- `folder_id` (optional, defaults to `root`)
 
 - `user_google_email`
+
+Like `create_doc`, the imported Doc arrives with a single tab titled "Tab 1". Rename it when the Doc is meant to carry named tabs.
 
 ### batch_update_doc
 
@@ -137,19 +149,63 @@ Export to PDF.
 
 Diagnostics tools.
 
+## Populate a tab from a file - the helper
+
+Scribe ships `scripts/doc-tab-populate`, which fills an EXISTING tab from a markdown file on disk. It runs the server's own converter on the file and sends exactly the requests `populate_from_markdown` sends (verified structurally identical on 1.26.1), so the text never passes through the session's context and nothing is retyped. It also reads the tab back and checks it.
+
+Use it when -
+
+- the markdown already sits in a file larger than about 8 KB, or
+
+- you are syncing more than one Doc or tab in the session, or
+
+- the content must land verbatim (a render, a generated report, anything a person wrote).
+
+Keep inline `populate_from_markdown` for small content you are composing in the conversation.
+
+Run it with Bash. The wrapper picks the workspace-mcp version the plugin pins, via uvx, so it needs no setup beyond an authenticated account -
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account <email> --doc <doc id> --list-tabs
+"${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account <email> --doc <doc id> --tab <tab id> --file <path.md>
+"${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account <email> --doc <doc id> --tab <tab id> --file <path.md> --write --check
+```
+
+If `${CLAUDE_PLUGIN_ROOT}` is not set in the shell, the plugin lives under `~/.claude/plugins/cache/<marketplace>/scribe/<version>/`. On Windows call `uvx --from workspace-mcp==<pinned version> python <plugin>/scripts/doc-tab-populate.py` with the same arguments.
+
+- No mode flag is a dry run (reads the Doc, confirms the tab, prints the request count). `--write` replaces the tab (`replace_existing=true`), `--append` adds after the existing content (`replace_existing=false`), `--list-tabs` prints tab ids, titles and URLs.
+
+- Every write is followed by the read-back check, and `--check` runs it alone. It confirms every text block of the file is in the tab and prints the tab URL. Exit 0 means all text landed, exit 1 lists what is missing. It checks TEXT, not layout - it also prints `WARN` lines for flattened tables and flattened nested lists, and `--strict` turns those into exit 3.
+
+- The file can live anywhere readable (a repo, a render folder); unlike `import_to_google_doc`, the helper does not require `~/.workspace-mcp/attachments`. Pass `--sandbox` to apply that restriction anyway. Secret locations (the credentials folder, `.env`, `.ssh` and similar) are always refused.
+
+### Replace a tab's content from a file, keeping the old version
+
+1. `manage_doc_tab create` with a title and `index` - note the new `tab_id`.
+
+2. Helper with `--write --check` into the new tab. Fix anything the check reports before going on.
+
+3. If a `WARN - tables flattened` line appears, run the table repair pass (Gotchas) on the new tab.
+
+4. `manage_doc_tab rename` the original tab (for example to "Archive - original") if the user is replacing it, and hand back the new tab's URL.
+
+To overwrite a tab in place instead, skip step 1 and point `--tab` at the existing tab id.
+
 ## Common patterns
 
 ### Update a specific tab from markdown
 
 1. `inspect_doc_structure` to find tab_id by title.
 
-2. `manage_doc_tab` with `action="populate_from_markdown"`, `replace_existing=true`.
+2. Content in a file and larger than about 8 KB, or more than one Doc in the sync - the helper with `--write --check` (above). Otherwise `manage_doc_tab` with `action="populate_from_markdown"`, `replace_existing=true`.
+
+3. Verify - the helper's `--check` against the source file is the standard read-back, whichever path wrote the tab. Report the push complete only on a clean check.
 
 ### Create a new tab and populate it
 
 1. `manage_doc_tab` with `action="create"`, `index`, `title` - response contains the new `tab_id`.
 
-2. `manage_doc_tab` again with `action="populate_from_markdown"`, the new `tab_id`, and the markdown content.
+2. `manage_doc_tab` again with `action="populate_from_markdown"`, the new `tab_id`, and the markdown content - or, when the content is in a file, the helper with `--write --check`.
 
 ### Bulk find/replace
 
@@ -167,7 +223,11 @@ Diagnostics tools.
 
 - `batch_update_doc` is atomic - if any operation fails, none are applied. Use for invariant-critical updates.
 
-- Tables - MANDATORY post-populate verification. `import_to_google_doc` renders GFM tables natively (it goes through Drive's file conversion). `populate_from_markdown` renders tables natively only once the workspace-mcp converter fix (2026-07, table support in the markdown writer, upstream PR #929) is in the pinned version; every released version through at least 1.26.1 (the current pin) flattens every table to a single paragraph of raw pipe text while still returning success - a newer pin does NOT mean fixed until that PR merges. Because the failure is silent, after EVERY populate of table-bearing markdown run detailed `inspect_doc_structure` on the tab and check two things - the table count matches the source markdown, and no paragraph text starts with `| `. If a table flattened, run the repair pass - working bottom-up so indexes stay valid, for each pipe-text table replace the range `[start_index, end_index - 1]` with a single space via `modify_doc_text`, then `create_table_with_data` at `start_index + 1` with the 2D array parsed from the source markdown (always pass `tab_id`), then re-inspect to confirm table count matches and zero pipe paragraphs remain. Procedure proven 7-for-7 on 2026-07-13. Full history in `docs/issues/populate-from-markdown-table-rendering.md`.
+- Tables - MANDATORY post-populate verification. `import_to_google_doc` renders GFM tables natively (it goes through Drive's file conversion). `populate_from_markdown` renders tables natively only once the workspace-mcp converter fix (2026-07, table support in the markdown writer, upstream PR #929) is in the pinned version; every released version through at least 1.30.0 (checked 2026-10-01; the current pin is 1.26.1) flattens every table to a single paragraph of raw pipe text while still returning success - a newer pin does NOT mean fixed until that PR merges. Because the failure is silent, after EVERY populate of table-bearing markdown run detailed `inspect_doc_structure` on the tab and check two things - the table count matches the source markdown, and no paragraph text starts with `| `. If a table flattened, run the repair pass - working bottom-up so indexes stay valid, for each pipe-text table replace the range `[start_index, end_index - 1]` with a single space via `modify_doc_text`, then `create_table_with_data` at `start_index + 1` with the 2D array parsed from the source markdown (always pass `tab_id`), then re-inspect to confirm table count matches and zero pipe paragraphs remain. Procedure proven 7-for-7 on 2026-07-13. Full history in `docs/issues/populate-from-markdown-table-rendering.md`.
+
+- Nested lists flatten - the converter emits every list item at nesting level 0 under one bullet style, so a two-level list becomes one flat list and a numbered list nested under bullets becomes bullets. Confirmed live on 1.26.1 (2026-10-01), unchanged through 1.30.0. When hierarchy matters, rewrite the nested items as a flat list with the parent named in each item, or apply nesting afterwards with `batch_update_doc`. The helper's check prints `WARN - nested lists flattened` when this happens.
+
+- Silent drops - three markdown constructs vanish on `populate_from_markdown` with a success response, confirmed live on 1.26.1. Indented (four-space) code blocks, top-level raw HTML blocks such as `<div>...</div>`, and every paragraph after the first inside a list item. Use fenced code blocks, avoid raw HTML, and keep list items to one paragraph. The helper's read-back check lists any such text as missing.
 
 - Markdown's single newline is a soft break, so consecutive lines collapse into one paragraph in the Doc even though they look line-per-line in the source. For a real bulleted or numbered list, use a consistent marker (`- ` or `1. `) with a blank line before and after the list; tight items then render as real Doc bullets. For separate plain paragraphs (no bullets), put a blank line between each line. Do not force content into a list just to stop the collapse - separate paragraphs only need the blank line. A single paragraph where several lines were expected means a soft-break collapse.
 

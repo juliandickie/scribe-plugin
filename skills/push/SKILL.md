@@ -1,6 +1,6 @@
 ---
 description: Push a local markdown file to Google Drive as a new or updated Google Doc. Use when the user asks to push markdown to Drive, update a Doc tab with markdown content, or sync a markdown file to a specific Google Doc.
-last-validated: 2026-05-15
+last-validated: 2026-10-01
 ---
 
 # Scribe - Push
@@ -19,7 +19,9 @@ User input arrives in $ARGUMENTS as free-form text. Parse it for -
 
 - **`--account <email>`** (optional) - Google account to use (overrides default)
 
-## File-path sandbox - read this BEFORE invoking any tool
+## File-path sandbox - read this BEFORE invoking `import_to_google_doc`
+
+The sandbox applies to the new-Doc route (`import_to_google_doc`). The tab routes below use the Scribe helper, which reads the file where it is, so they need no copy step.
 
 The MCP server enforces a directory sandbox for file uploads via the `ALLOWED_FILE_DIRS` environment variable. The plugin's manifest sets this to `~/.workspace-mcp/attachments`. Files OUTSIDE that directory cannot be uploaded.
 
@@ -61,19 +63,33 @@ Important behaviour -
 
 ## Routing logic
 
-Once the file is in an allowed location -
+- If `--tab-id` is present - run the Scribe helper against that tab, from wherever the file already is -
 
-- If `--tab-id` is present - call `manage_doc_tab` with `action: "populate_from_markdown"`, `document_id`, `tab_id`, the markdown content, and `replace_existing: true`
+  ```bash
+  "${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account <email> --doc <doc-id> --tab <tab-id> --file <path> --write --check
+  ```
 
-- If `--doc-id` is present but no `--tab-id` - call `inspect_doc_structure` to find the primary tab_id, then call `manage_doc_tab` with `action: "populate_from_markdown"` against that tab
+  It sends exactly what `manage_doc_tab populate_from_markdown` with `replace_existing: true` sends, but the file never passes through your context. Full usage is in the docs skill under "Populate a tab from a file". For a small file (under about 8 KB) inline `manage_doc_tab populate_from_markdown` is acceptable; for anything larger, or a batch of files, use the helper.
 
-- If neither `--doc-id` nor `--tab-id` - call `import_to_google_doc` with `file_path` parameter (NOT `content`) pointing at the file. Pass `source_format: "md"` and `parent_folder_id: <--folder>` if specified. Using `file_path` instead of `content` avoids loading large files into the calling agent's context window.
+- If `--doc-id` is present but no `--tab-id` - list the tabs (`--list-tabs` on the helper, or `inspect_doc_structure` without `tab_id`, reading only `tabs`), pick the primary tab, then write it as above.
+
+- If neither `--doc-id` nor `--tab-id` - call `import_to_google_doc` with `file_name` (the Doc's title) and `file_path` (NOT `content`) pointing at the file. Pass `source_format: "md"` and `folder_id: <--folder>` if specified. Using `file_path` instead of `content` avoids loading large files into the calling agent's context window. The new Doc has a single tab titled "Tab 1"; rename it with `manage_doc_tab rename` if the Doc will carry named tabs.
 
 Always pass `user_google_email` (either the --account override or the resolved default for the current context - check the nearest clients/{CLIENT-ID}/profile.md if working in an AHPRA-style repo).
 
+## Verify the push - MANDATORY after any tab route
+
+Read the tab back against the source file before reporting success -
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account <email> --doc <doc-id> --tab <tab-id> --file <path> --check
+```
+
+(A helper `--write` already runs this.) Exit 0 means every text block of the file is in the tab. Exit 1 lists what is missing - most often content the converter drops silently (indented code blocks, raw HTML blocks, second paragraphs inside a list item; see the docs skill Gotchas), which needs rewriting in the source and a re-push. The check is on text, not layout, and it prints `WARN` lines for the two layout failures it can see - flattened tables (handled below) and flattened nested lists.
+
 ## Table integrity check - MANDATORY after any populate route
 
-Both populate routes above (`--tab-id`, and `--doc-id` without `--tab-id`) go through `manage_doc_tab populate_from_markdown`, whose table rendering fails SILENTLY on workspace-mcp pins that predate the 2026-07 converter table fix - every GFM table flattens to one paragraph of raw pipe text and the tool still reports success. The `import_to_google_doc` route is unaffected (Drive's native conversion renders tables correctly).
+Both tab routes above (`--tab-id`, and `--doc-id` without `--tab-id`) go through the converter behind `manage_doc_tab populate_from_markdown` (the helper uses the same one), whose table rendering fails SILENTLY on workspace-mcp pins that predate the 2026-07 converter table fix - every GFM table flattens to one paragraph of raw pipe text and the tool still reports success. The `import_to_google_doc` route is unaffected (Drive's native conversion renders tables correctly).
 
 If the source markdown contains any GFM table (a separator row like `|---|---|`), then after the populate succeeds -
 
@@ -93,7 +109,7 @@ If the user has authenticated some accounts but not the one this push needs (e.g
 
 ## After success
 
-Surface the resulting Google Doc URL and the tab name or doc title that was affected. For batch pushes, summarize - "Pushed N files to <folder name>" with a list.
+Surface the resulting Google Doc URL and the tab name or doc title that was affected. For a tab, give the tab's own URL - the Doc URL plus `?tab=<tab-id>` (the helper prints it after `WRITTEN -`). For batch pushes, summarize - "Pushed N files to <folder name>" with a list.
 
 ## Multi-org caveat
 

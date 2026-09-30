@@ -1,6 +1,6 @@
 ---
 description: Use when a user request mentions Google Workspace - any Gmail, Calendar, Drive, Docs, Sheets, Slides, Contacts, Tasks, Forms, or Chat operation. Also triggers on multi-service or multi-account requests, document URLs, folder IDs, and natural phrases like "across my accounts," "in my Drive," "from my inbox." Routes work to service-specific skills and workflow skills.
-last-validated: 2026-05-15
+last-validated: 2026-10-01
 ---
 
 # Scribe - Workspace orchestration router
@@ -31,7 +31,19 @@ These are the canonical sequences for common multi-step shapes.
 
 2. Drive - if attachments matter, `get_gmail_attachment_content` then `create_drive_file` to save them into a client/contact subfolder.
 
-3. Docs - `import_to_google_doc` with the thread content, or `manage_doc_tab populate_from_markdown` if writing into an existing doc tab. Mind the rendering gotchas - markdown tables MUST be verified after any populate (they flatten to raw pipe text on older workspace-mcp pins; the docs skill Gotchas carry the mandatory verification and repair pass), and single-newline lines collapse into one paragraph (see the docs skill Gotchas for the list and paragraph patterns).
+3. Docs - `import_to_google_doc` with the thread content, or `manage_doc_tab populate_from_markdown` if writing into an existing doc tab. Mind the rendering gotchas - nested lists and a few constructs flatten or drop silently (docs skill Gotchas) - - markdown tables MUST be verified after any populate (they flatten to raw pipe text on older workspace-mcp pins; the docs skill Gotchas carry the mandatory verification and repair pass), and single-newline lines collapse into one paragraph (see the docs skill Gotchas for the list and paragraph patterns).
+
+### Markdown files to Doc tabs (syncs, write-backs, re-renders)
+
+When the content already sits in files on disk, or more than one Doc or tab is being filled, do NOT read each file into the conversation and retype it into `populate_from_markdown`. Use the Scribe helper `scripts/doc-tab-populate` (docs skill, "Populate a tab from a file") -
+
+1. Docs - `manage_doc_tab create` for each new tab, or use existing tab ids (`--list-tabs` prints them).
+
+2. Helper with `--write --check` per tab, one Bash call each. The file never enters the context, so there is no per-session cap on how many Docs a sync can cover.
+
+3. Act on the check - exit 1 means text is missing, a `WARN` line means a flattened table (run the repair pass) or flattened nesting.
+
+4. Hand back each tab's own URL (Doc URL plus `?tab=<tab id>`), which is what task trackers and emails need.
 
 ### Calendar to prep Doc
 
@@ -123,7 +135,7 @@ The `ALLOWED_FILE_DIRS` sandbox (manifest default `~/.workspace-mcp/attachments`
 
 - **Project repo paths fail** by default. Stage the file into `~/.workspace-mcp/attachments/scribe-session/` first.
 
-For a file already in Drive or Gmail, the URL mode above skips staging entirely. When creating a Drive file from a local source, prefer the URL or inline `content` mode to avoid the sandbox question. The push skill (`skills/push/SKILL.md`) has the full staging decision tree; link to it rather than re-stating it.
+For a file already in Drive or Gmail, the URL mode above skips staging entirely. The Scribe helper `scripts/doc-tab-populate` is not an MCP tool and runs through the shell, so it reads a markdown file wherever it is, no staging (its `--sandbox` flag applies the same restriction when wanted). When creating a Drive file from a local source, prefer the URL or inline `content` mode to avoid the sandbox question. The push skill (`skills/push/SKILL.md`) has the full staging decision tree; link to it rather than re-stating it.
 
 ## Enumerating authenticated accounts
 
