@@ -146,12 +146,14 @@ Each skill stays under 500 lines, so Claude reads only what it needs. The underl
 
 Syncing long markdown into Google Docs (course masters, reports, renders) used to mean pasting the whole text through the conversation, twice, for every tab. Scribe ships a helper that fills an existing Doc tab straight from a file on disk, using the MCP server's own converter, then reads the tab back and confirms every line landed.
 
+Claude runs it for you, from the installed plugin folder -
+
 ```bash
-scripts/doc-tab-populate --account you@example.com --doc <doc id> --list-tabs
-scripts/doc-tab-populate --account you@example.com --doc <doc id> --tab <tab id> --file notes.md --write --check
+"${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account you@example.com --doc <doc id> --list-tabs
+"${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account you@example.com --doc <doc id> --tab <tab id> --file notes.md --write --check
 ```
 
-Claude reaches for it on its own when a sync is large or spans several Docs; the docs and push skills carry the details. It runs through `uvx` on the same pinned `workspace-mcp` the plugin uses, so there is nothing extra to install. The read-back check also flags what the markdown converter silently loses (flattened tables and nested lists, dropped indented code and HTML blocks), so a push is only called done when it really is.
+It reaches for it on its own when a sync is large or spans several Docs; the docs and push skills carry the details. It runs through `uvx` on the same pinned `workspace-mcp` the plugin uses, so there is nothing extra to install. The read-back check also flags what the markdown converter silently loses (flattened tables and nested lists, dropped indented code and HTML blocks), so a push is only called done when it really is.
 
 ## Setup, multi-org, customisation
 

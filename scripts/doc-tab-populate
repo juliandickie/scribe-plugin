@@ -7,7 +7,7 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 manifest="$here/../.claude-plugin/plugin.json"
 
-pin="$(grep -o '"workspace-mcp@[^"]*"' "$manifest" 2>/dev/null | head -n 1 | tr -d '"' | cut -d @ -f 2)"
+pin="$(grep -o '"workspace-mcp@[^"]*"' "$manifest" 2>/dev/null | head -n 1 | tr -d '"' | cut -d @ -f 2 || true)"
 if [ -z "$pin" ]; then
   echo "ERROR - could not read the workspace-mcp pin from $manifest" >&2
   exit 2

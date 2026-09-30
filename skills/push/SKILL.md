@@ -85,7 +85,7 @@ Read the tab back against the source file before reporting success -
 "${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account <email> --doc <doc-id> --tab <tab-id> --file <path> --check
 ```
 
-(A helper `--write` already runs this.) Exit 0 means every text block of the file is in the tab. Exit 1 lists what is missing - most often content the converter drops silently (indented code blocks, raw HTML blocks, second paragraphs inside a list item; see the docs skill Gotchas), which needs rewriting in the source and a re-push. The check is on text, not layout, and it prints `WARN` lines for the two layout failures it can see - flattened tables (handled below) and flattened nested lists.
+(A helper `--write` already runs this.) Exit 0 means every text block of the file is in the tab, in order. Exit 4 means a write was sent but its outcome is unknown - run `--check` before anything else. Exit 1 lists what is missing - most often content the converter drops silently (indented code blocks, raw HTML blocks, second paragraphs inside a list item; see the docs skill Gotchas), which needs rewriting in the source and a re-push. The check is on text, not layout, and it prints `WARN` lines for the two layout failures it can see - flattened tables (handled below) and flattened nested lists.
 
 ## Table integrity check - MANDATORY after any populate route
 
@@ -99,7 +99,7 @@ If the source markdown contains any GFM table (a separator row like `|---|---|`)
 
 3. If any table flattened, run the repair pass from the docs skill Gotchas - bottom-up per pipe-text table, `modify_doc_text` replaces `[start_index, end_index - 1]` with a single space, then `create_table_with_data` at `start_index + 1` with the 2D array parsed from the source markdown (always pass `tab_id`) - and re-inspect to confirm.
 
-Do not report the push complete until this check has passed. A re-synced Doc with flattened tables is the single most recurrent defect on this path.
+Do not report the push complete until this check has passed. If the helper refuses the file for emoji (`--allow-astral`), strip them from a copy of the file and push the copy - on this workspace-mcp they corrupt every later paragraph's style (docs skill Gotchas). A re-synced Doc with flattened tables is the single most recurrent defect on this path.
 
 ## Auth precondition
 

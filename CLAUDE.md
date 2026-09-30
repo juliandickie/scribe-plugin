@@ -24,7 +24,7 @@ The plugin's distinctive value is the integration polish, not the underlying MCP
 - **Direct download** - `https://github.com/juliandickie/scribe-plugin/archive/refs/tags/v1.2.0.zip`
 - **Skill count** - 31 (6 existing infra + 1 orchestration + 10 service + 14 workflow)
 - **Tools enabled** - all 12 workspace-mcp tool groups
-- **Open issues for next dev cycle** - tracked in `docs/issues/` (gitignored, local only). Most recent entry - [`populate-from-markdown-table-rendering.md`](docs/issues/populate-from-markdown-table-rendering.md) covering the GFM table rendering bug in `manage_doc_tab populate_from_markdown` plus 4 adjacent observations, captured from a multi-table Doc rebuild on the iDD LPIS social media plan. Its 2026-10-01 update adds nested-list flattening and three silent drops (indented code, raw HTML blocks, later paragraphs of a list item), all confirmed live on 1.26.1.
+- **Open issues for next dev cycle** - tracked in `docs/issues/` (gitignored, local only). Most recent entry - [`populate-from-markdown-table-rendering.md`](docs/issues/populate-from-markdown-table-rendering.md) covering the GFM table rendering bug in `manage_doc_tab populate_from_markdown` plus 4 adjacent observations, captured from a multi-table Doc rebuild on the iDD LPIS social media plan. Its 2026-10-01 update adds nested-list flattening, three silent drops (indented code, raw HTML blocks, later paragraphs of a list item), emoji corrupting every later paragraph's style, and append gluing onto a non-empty last paragraph, all confirmed live on 1.26.1.
 
 ## Architecture - where this fits in the broader ecosystem
 

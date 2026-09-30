@@ -31,7 +31,7 @@ These are the canonical sequences for common multi-step shapes.
 
 2. Drive - if attachments matter, `get_gmail_attachment_content` then `create_drive_file` to save them into a client/contact subfolder.
 
-3. Docs - `import_to_google_doc` with the thread content, or `manage_doc_tab populate_from_markdown` if writing into an existing doc tab. Mind the rendering gotchas - nested lists and a few constructs flatten or drop silently (docs skill Gotchas) - - markdown tables MUST be verified after any populate (they flatten to raw pipe text on older workspace-mcp pins; the docs skill Gotchas carry the mandatory verification and repair pass), and single-newline lines collapse into one paragraph (see the docs skill Gotchas for the list and paragraph patterns).
+3. Docs - `import_to_google_doc` with the thread content, or `manage_doc_tab populate_from_markdown` if writing into an existing doc tab. Mind the rendering gotchas - nested lists and a few constructs flatten or drop silently (docs skill Gotchas); markdown tables MUST be verified after any populate (they flatten to raw pipe text on older workspace-mcp pins; the docs skill Gotchas carry the mandatory verification and repair pass), and single-newline lines collapse into one paragraph (see the docs skill Gotchas for the list and paragraph patterns).
 
 ### Markdown files to Doc tabs (syncs, write-backs, re-renders)
 

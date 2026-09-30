@@ -1,6 +1,6 @@
 ---
 description: Use when the user's request involves Google Slides - reading or updating slide content, creating presentations, modifying slide elements, generating decks from outlines. Triggers on presentation, deck, slide, slides, slideshow.
-last-validated: 2026-08-28
+last-validated: 2026-10-01
 ---
 
 # Scribe - Slides

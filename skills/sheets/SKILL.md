@@ -1,6 +1,6 @@
 ---
 description: Use when the user's request involves Google Sheets - reading cell values, writing data, appending rows, working with ranges in A1 notation, formulas, formatting, or creating new spreadsheets. Triggers on spreadsheet, sheet, rows, columns, cells, range, formula, csv data.
-last-validated: 2026-08-28
+last-validated: 2026-10-01
 ---
 
 # Scribe - Sheets

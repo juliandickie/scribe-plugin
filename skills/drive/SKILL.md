@@ -1,6 +1,6 @@
 ---
 description: Use when the user's request involves Google Drive - folders, files, file uploads, file sharing, permissions, public access checks, or any Drive content operation. Triggers on Drive, folder, file, upload, share, permissions, Drive URL, file ID.
-last-validated: 2026-08-28
+last-validated: 2026-10-01
 ---
 
 # Scribe - Drive

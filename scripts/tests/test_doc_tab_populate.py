@@ -89,16 +89,25 @@ class FakeService:
     def __init__(self, tabs):
         self.tabs = tabs  # tab_id -> FakeTab
         self.writes = []
+        self.bodies = []
+        self.fail_get_after_write = None  # an exception to raise on reads after a write
 
     def documents(self):
         return self
 
     def get(self, documentId, includeTabsContent):
-        return self._req(lambda: fake_doc([(tid, tid.upper(), t) for tid, t in self.tabs.items()]))
+        def go():
+            if self.writes and self.fail_get_after_write:
+                raise self.fail_get_after_write
+            doc = fake_doc([(tid, tid.upper(), t) for tid, t in self.tabs.items()])
+            doc["revisionId"] = f"rev{len(self.writes)}"
+            return doc
+        return self._req(go)
 
     def batchUpdate(self, documentId, body):
         def go():
             self.writes.append(body["requests"])
+            self.bodies.append(body)
             for tid, tab in self.tabs.items():
                 mine = [r for r in body["requests"] if tid in str(r)]
                 tab.apply(mine, tid)
@@ -200,6 +209,20 @@ class Requests(unittest.TestCase):
         self.assertEqual(reqs, TO_REQUESTS("more\n", tab_id="t.0", start_index=39))
         self.assertEqual(dtp.build_requests(TO_REQUESTS, "more\n", "t.0", end=2, append=True),
                          TO_REQUESTS("more\n", tab_id="t.0", start_index=1))
+
+    def test_append_after_text_breaks_the_paragraph_first(self):
+        tab = FakeTab("Typed by hand\n")
+        doc = fake_doc([("t.0", "T", tab)])
+        self.assertTrue(dtp.last_paragraph_has_text(doc, "t.0"))
+        end = dtp.tab_end_index(doc, "t.0")
+        tab.apply(dtp.build_requests(TO_REQUESTS, "Appended.\n", "t.0", end, True, break_first=True), "t.0")
+        paras = dtp.read_tab(fake_doc([("t.0", "T", tab)]), "t.0")["paras"]
+        self.assertEqual(paras[:2], ["Typed by hand", "Appended."])
+        # without the break, the converter's own request list glues the two together
+        tab = FakeTab("Typed by hand\n")
+        tab.apply(dtp.build_requests(TO_REQUESTS, "Appended.\n", "t.0", end, True), "t.0")
+        self.assertEqual(dtp.read_tab(fake_doc([("t.0", "T", tab)]), "t.0")["paras"][0], "Typed by handAppended.")
+        self.assertFalse(dtp.last_paragraph_has_text(fake_doc([("t.0", "T", FakeTab("text\n\n"))]), "t.0"))
 
     def test_every_request_targets_the_tab(self):
         for r in dtp.build_requests(TO_REQUESTS, RICH, "t.9", end=50, append=False):
@@ -303,7 +326,8 @@ class FileSafety(unittest.TestCase):
 
     def test_refuses_secret_locations(self):
         for rel in (".env", "app/.env.local", ".ssh/id.md", ".aws/x.md", "credentials.json",
-                    "client_secret_123.json", "oauth_client.json"):
+                    "client_secret_123.json", "oauth_client.json", "keys/id_rsa", "certs/server.pem",
+                    "x/api.key", ".envrc", ".docker/config.json", "spike_token.json"):
             with self.subTest(rel=rel), self.assertRaises(dtp.HelperError):
                 dtp.read_source(str(self.make(rel)), self.creds, sandbox=False)
         (self.creds / "me@example.com.json").write_text("{}")
@@ -390,6 +414,182 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("t.1\tT.1\thttps://docs.google.com/document/d/D/edit?tab=t.1", out)
 
 
+class CheckOrder(unittest.TestCase):
+    def doc(self, *paras):
+        text = "".join(p + "\n" for p in paras)
+        return fake_doc([("t.0", "T", FakeTab(text))])
+
+    def test_blocks_must_appear_in_order(self):
+        result = dtp.check("First.\n\nSecond.\n", self.doc("Second.", "First."), "t.0")
+        self.assertEqual(result["missing"], ["Second."])
+
+    def test_repeats_must_each_be_present(self):
+        result = dtp.check("Same line.\n\nSame line.\n", self.doc("Same line."), "t.0")
+        self.assertEqual(result["missing"], ["Same line."])
+
+    def test_a_dropped_short_block_is_not_satisfied_by_earlier_text(self):
+        doc = self.doc("Yes", "Heading", "Body text")
+        result = dtp.check("Heading\n\nYes\n\nBody text\n", doc, "t.0")
+        self.assertEqual(result["missing"], ["Yes"])
+
+    def test_from_index_ignores_old_content(self):
+        doc = self.doc("Old paragraph.", "New paragraph.")
+        self.assertEqual(dtp.check("Old paragraph.\n", doc, "t.0", from_index=16)["missing"], ["Old paragraph."])
+        self.assertEqual(dtp.check("New paragraph.\n", doc, "t.0", from_index=16)["missing"], [])
+
+    def test_astral_characters_warn(self):
+        result = dtp.check("Hi \U0001F600 there.\n", self.doc("Hi \U0001F600 there."), "t.0")
+        self.assertEqual(result["missing"], [])
+        self.assertTrue(any("Basic Multilingual Plane" in w for w in result["warnings"]))
+
+
+class SafetyAndErrors(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp()).resolve()
+        self.addCleanup(shutil.rmtree, self.tmp)
+
+    def test_credentials_dir_refused_in_any_case(self):
+        creds = self.tmp / "creds"
+        (creds).mkdir()
+        f = creds / "me@x.com.json"
+        f.write_text("{}")
+        self.assertTrue(dtp.is_secret(Path(str(f).replace("/creds/", "/CREDS/")), creds))
+
+    def test_scribe_home_refused_except_attachments(self):
+        with mock.patch.dict(os.environ, {"HOME": str(self.tmp)}):
+            base = self.tmp / ".workspace-mcp"
+            (base / "attachments").mkdir(parents=True)
+            (base / "notes.md").write_text("x")
+            (base / "attachments" / "ok.md").write_text("x")
+            other = self.tmp / "elsewhere"
+            self.assertTrue(dtp.is_secret(base / "notes.md", other))
+            self.assertFalse(dtp.is_secret(base / "attachments" / "ok.md", other))
+            self.assertTrue(dtp.is_secret(self.tmp / ".google_workspace_mcp" / "credentials" / "a.json", other))
+
+    def test_corrupt_credential_is_named_as_corrupt(self):
+        from auth.credential_store import LocalDirectoryCredentialStore
+        (self.tmp / "me@example.com.json").write_text("not json")
+        with mock.patch("auth.credential_store.get_credential_store",
+                        return_value=LocalDirectoryCredentialStore(str(self.tmp))):
+            with self.assertRaises(dtp.HelperError) as cm:
+                dtp.docs_service("me@example.com", self.tmp)
+        self.assertIn("could not be parsed", str(cm.exception))
+
+    def test_write_5xx_and_network_errors_mean_outcome_unknown(self):
+        from googleapiclient.errors import HttpError
+        resp = type("Resp", (), {"status": 503, "reason": "Unavailable"})()
+        for exc in (HttpError(resp, b"{}"), ConnectionResetError("reset"), TimeoutError("slow")):
+            req = type("R", (), {"execute": staticmethod(mock.Mock(side_effect=exc))})()
+            with self.subTest(exc=type(exc).__name__), self.assertRaises(dtp.HelperError) as cm:
+                dtp.execute(req, "writing the tab", write=True)
+            self.assertEqual(cm.exception.code, dtp.EXIT_UNKNOWN_WRITE)
+            self.assertIn("--check", str(cm.exception))
+            self.assertEqual(req.execute.call_count, 1, "writes are never retried")
+
+    def test_write_4xx_is_a_plain_error(self):
+        from googleapiclient.errors import HttpError
+        resp = type("Resp", (), {"status": 400, "reason": "Bad Request"})()
+        req = type("R", (), {"execute": staticmethod(mock.Mock(side_effect=HttpError(resp, b"{}")))})()
+        with self.assertRaises(dtp.HelperError) as cm:
+            dtp.execute(req, "writing the tab", write=True)
+        self.assertEqual(cm.exception.code, dtp.EXIT_USAGE)
+        self.assertIn("nothing was applied", str(cm.exception))
+
+    def test_reads_retry_network_errors(self):
+        calls = mock.Mock(side_effect=[ConnectionResetError("reset"), {"ok": True}])
+        req = type("R", (), {"execute": staticmethod(calls)})()
+        with mock.patch.object(dtp.time, "sleep"):
+            self.assertEqual(dtp.execute(req, "reading"), {"ok": True})
+        self.assertEqual(calls.call_count, 2)
+
+    def test_unexpected_exception_exits_2_not_1(self):
+        with mock.patch.object(dtp, "run", side_effect=ValueError("boom")), \
+                contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit) as cm:
+            dtp.main()
+        self.assertEqual(cm.exception.code, 2)
+        self.assertIn("unexpected ValueError", err.getvalue())
+
+    def test_bom_is_stripped(self):
+        f = self.tmp / "bom.md"
+        f.write_bytes("\ufeff# Title\n".encode("utf-8"))
+        self.assertEqual(dtp.read_source(str(f), self.tmp / "creds", sandbox=False)[1], "# Title\n")
+
+
+class EndToEndSafety(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp()).resolve()
+        self.addCleanup(shutil.rmtree, self.tmp)
+        self.md = self.tmp / "page.md"
+        self.svc = FakeService({"t.0": FakeTab("keep me\n")})
+        patcher = mock.patch.object(dtp, "docs_service", return_value=self.svc)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def run_cli(self, *args):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            code = dtp.run(["--account", "me@example.com", "--doc", "D", "--tab", "t.0", "--file", str(self.md), *args])
+        return code, out.getvalue()
+
+    def test_empty_file_never_blanks_the_tab(self):
+        for text in ("", "  \n\n", "<!-- only a comment -->\n"):
+            self.md.write_text(text, encoding="utf-8")
+            with self.subTest(text=text), self.assertRaises(dtp.HelperError) as cm:
+                self.run_cli("--write")
+            self.assertIn("--allow-empty", str(cm.exception))
+        self.assertEqual(self.svc.writes, [])
+        self.assertIn("keep me", "".join(c[0] for c in self.svc.tabs["t.0"].cells))
+
+    def test_allow_empty_clears_and_check_empty_alone_fails(self):
+        self.md.write_text("", encoding="utf-8")
+        code, out = self.run_cli("--check")
+        self.assertEqual(code, 1)
+        self.assertIn("CHECK EMPTY", out)
+        code, out = self.run_cli("--write", "--allow-empty")
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("keep me", "".join(c[0] for c in self.svc.tabs["t.0"].cells))
+
+    def test_write_carries_the_revision_id(self):
+        self.md.write_text("New text.\n", encoding="utf-8")
+        code, _ = self.run_cli("--write")
+        self.assertEqual(code, 0)
+        self.assertEqual(self.svc.bodies[0]["writeControl"], {"requiredRevisionId": "rev0"})
+
+    def test_append_check_only_counts_the_appended_part(self):
+        self.md.write_text("keep me\n", encoding="utf-8")
+        code, out = self.run_cli("--append")
+        self.assertEqual(code, 0, out)
+        self.assertIn("appended part", out)
+
+    def test_read_back_failure_after_write_is_exit_4(self):
+        self.md.write_text("New text.\n", encoding="utf-8")
+        self.svc.fail_get_after_write = ConnectionResetError("dropped")
+        with mock.patch.object(dtp.time, "sleep"), self.assertRaises(dtp.HelperError) as cm:
+            self.run_cli("--write")
+        self.assertEqual(cm.exception.code, dtp.EXIT_UNKNOWN_WRITE)
+        self.assertIn("the write landed", str(cm.exception))
+
+    def test_astral_characters_refuse_writes_unless_allowed(self):
+        self.md.write_text("# Party \U0001F389\n\nText.\n", encoding="utf-8")
+        with self.assertRaises(dtp.HelperError) as cm:
+            self.run_cli("--write")
+        self.assertIn("--allow-astral", str(cm.exception))
+        self.assertEqual(self.svc.writes, [])
+        code, out = self.run_cli("--write", "--allow-astral", "--strict")
+        self.assertEqual(code, 3, out)
+        self.assertEqual(len(self.svc.writes), 1)
+
+    def test_version_mismatch_refuses_writes(self):
+        self.md.write_text("New text.\n", encoding="utf-8")
+        with mock.patch.object(dtp, "installed_version", return_value="0.0.1"):
+            with self.assertRaises(dtp.HelperError) as cm:
+                self.run_cli("--write")
+            self.assertIn("Writes are refused", str(cm.exception))
+            code, _ = self.run_cli()  # a dry run still works
+        self.assertEqual(code, 0)
+        self.assertEqual(self.svc.writes, [])
+
+
 @unittest.skipUnless(shutil.which("uvx"), "uvx not installed")
 class Wrapper(unittest.TestCase):
     def test_wrapper_uses_the_pinned_version(self):
@@ -398,6 +598,18 @@ class Wrapper(unittest.TestCase):
         self.assertEqual(out.returncode, 0, out.stderr)
         pin, _ = dtp.manifest_info()
         self.assertIn(f"installed {pin}, plugin pin {pin}", out.stdout)
+
+    def test_wrapper_without_a_pin_fails_clearly(self):
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp)
+        (tmp / "scripts").mkdir()
+        (tmp / ".claude-plugin").mkdir()
+        (tmp / ".claude-plugin" / "plugin.json").write_text("{}")
+        shutil.copy2(SCRIPTS / "doc-tab-populate", tmp / "scripts" / "doc-tab-populate")
+        out = subprocess.run([str(tmp / "scripts" / "doc-tab-populate"), "--version"],
+                             capture_output=True, text=True, timeout=60)
+        self.assertEqual(out.returncode, 2)
+        self.assertIn("could not read the workspace-mcp pin", out.stderr)
 
 
 if __name__ == "__main__":
