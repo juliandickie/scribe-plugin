@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Runs doc-tab-populate.py under the exact workspace-mcp version this plugin pins, which is
+# the same cached interpreter the scribe MCP server runs in. All arguments pass through.
+#   scripts/doc-tab-populate --help
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+manifest="$here/../.claude-plugin/plugin.json"
+
+pin="$(grep -o '"workspace-mcp@[^"]*"' "$manifest" 2>/dev/null | head -n 1 | tr -d '"' | cut -d @ -f 2 || true)"
+if [ -z "$pin" ]; then
+  echo "ERROR - could not read the workspace-mcp pin from $manifest" >&2
+  exit 2
+fi
+if ! command -v uvx >/dev/null 2>&1; then
+  echo "ERROR - uvx not found. The scribe MCP server runs through uv, install it from https://docs.astral.sh/uv/" >&2
+  exit 2
+fi
+
+exec uvx --from "workspace-mcp==$pin" python "$here/doc-tab-populate.py" "$@"

@@ -1,7 +1,7 @@
 # Scribe plugin maintenance targets.
 # Run `make help` to see what's available.
 
-.PHONY: help validate publish icons clean release-notes orient check-upstream
+.PHONY: help validate test publish icons clean release-notes orient check-upstream
 
 # Override on the command line, e.g. make publish VERSION=0.2.1
 VERSION ?=
@@ -17,10 +17,18 @@ validate: ## Validate manifests parse and skill structure is intact
 	              daily-briefing inbox-triage support-scan meeting-prep thread-to-doc \
 	              client-digest weekly-wrap follow-up-tracker contact-onboard doc-chase \
 	              attach-vault event-recap smart-reply educator-setup; do \
-		test -f skills/$$skill/SKILL.md && echo "  skills/$$skill/SKILL.md - present" || (echo "  MISSING - skills/$$skill/SKILL.md"; exit 1); \
+		test -f skills/$$skill/SKILL.md && echo "  skills/$$skill/SKILL.md - present" || { echo "  MISSING - skills/$$skill/SKILL.md"; exit 1; }; \
 	done
 	@grep -q "name" .claude-plugin/plugin.json && echo "  plugin name field - present"
 	@grep -q "mcpServers" .claude-plugin/plugin.json && echo "  mcpServers - declared"
+	@for f in scripts/doc-tab-populate scripts/doc-tab-populate.py; do \
+		test -x $$f && echo "  $$f - present and executable" || { echo "  MISSING or not executable - $$f"; exit 1; }; \
+	done
+
+test: ## Run the offline tests for scripts/doc-tab-populate under the pinned workspace-mcp
+	@pin=$$(grep -o '"workspace-mcp@[^"]*"' .claude-plugin/plugin.json | head -n 1 | tr -d '"' | cut -d @ -f 2); \
+	echo "Testing against workspace-mcp $$pin"; \
+	uvx --from "workspace-mcp==$$pin" python -m unittest discover -s scripts/tests -v
 
 check-upstream: ## Compare pinned workspace-mcp version against latest PyPI release
 	@current=$$(jq -r '.mcpServers.scribe.args[0]' .claude-plugin/plugin.json | sed 's/workspace-mcp@//'); \

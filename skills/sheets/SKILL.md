@@ -1,6 +1,6 @@
 ---
 description: Use when the user's request involves Google Sheets - reading cell values, writing data, appending rows, working with ranges in A1 notation, formulas, formatting, or creating new spreadsheets. Triggers on spreadsheet, sheet, rows, columns, cells, range, formula, csv data.
-last-validated: 2026-08-28
+last-validated: 2026-10-01
 ---
 
 # Scribe - Sheets
@@ -63,13 +63,33 @@ Add, update, or remove conditional formatting rules.
 
 Create a new spreadsheet (new file in Drive).
 
-Parameters: `title`, optional `parent_folder_id`, `user_google_email`.
+Parameters: `title`, optional `sheet_names` (list of tab names), `user_google_email`. No folder parameter on the pinned 1.26.1 - it lands in My Drive root; move it with `update_drive_file`.
 
 ### create_sheet
 
 Add a new sheet (tab) to an existing spreadsheet.
 
 Parameters: `spreadsheet_id`, `title`, `user_google_email`.
+
+### manage_sheet_tab
+
+Rename, delete, hide, unhide, or reorder an existing sheet tab. Added in workspace-mcp 1.26 (not in 1.25.2). Use `create_sheet` to add a tab and `resize_sheet_dimensions` for row and column changes; this tool acts on the tab itself.
+
+Parameters:
+
+- `spreadsheet_id`
+
+- `sheet_name` - the title of the existing tab (not its numeric `gid`)
+
+- `action` - `"rename"`, `"delete"`, `"hide"`, `"unhide"`, or `"reorder"`
+
+- `new_name` - required for rename
+
+- `new_index` - zero-based position, required for reorder
+
+- `user_google_email`
+
+`delete` removes the tab and its data, recoverable only through the spreadsheet's version history, so confirm with the user first. Tabs are addressed by title, so after a rename use the new title in later calls.
 
 ### list_sheet_tables
 
