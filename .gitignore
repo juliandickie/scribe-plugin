@@ -3,3 +3,4 @@
 docs/issues/
 docs/future-plans/
 dev-docs/
+__pycache__/
