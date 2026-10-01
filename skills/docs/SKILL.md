@@ -1,6 +1,8 @@
 ---
 description: Use when the user's request involves Google Docs - reading or updating document content, working with specific tabs, filling a tab from a markdown file, batch updates, find-and-replace, headers/footers, or document structure. Triggers on Google Doc, document, doc tab, tab structure, tab URL, sync markdown to a doc, find and replace, doc URL.
 last-validated: 2026-10-01
+allowed-tools:
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate *)
 ---
 
 # Scribe - Docs
@@ -163,12 +165,12 @@ Use it when -
 
 Keep inline `populate_from_markdown` for small content you are composing in the conversation.
 
-Run it with Bash. The wrapper picks the workspace-mcp version the plugin pins, via uvx, so it needs no setup beyond an authenticated account -
+Run it with Bash. The wrapper picks the workspace-mcp version the plugin pins, via uvx, so it needs no setup beyond an authenticated account. The docs and push skills pre-approve it in their `allowed-tools`, so it runs without a permission prompt while either skill is active - write the path exactly as below, unquoted, so the command matches that rule -
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account <email> --doc <doc id> --list-tabs
-"${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account <email> --doc <doc id> --tab <tab id> --file <path.md>
-"${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account <email> --doc <doc id> --tab <tab id> --file <path.md> --write --check
+${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate --account <email> --doc <doc id> --list-tabs
+${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate --account <email> --doc <doc id> --tab <tab id> --file <path.md>
+${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate --account <email> --doc <doc id> --tab <tab id> --file <path.md> --write --check
 ```
 
 If that path does not resolve, find the installed copy with `ls -d ~/.claude/plugins/cache/*/scribe/*/scripts/doc-tab-populate` and use the one for the installed Scribe version. On Windows call `uvx --from workspace-mcp==<pinned version> python <plugin>/scripts/doc-tab-populate.py` with the same arguments.

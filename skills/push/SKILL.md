@@ -1,6 +1,8 @@
 ---
 description: Push a local markdown file to Google Drive as a new or updated Google Doc. Use when the user asks to push markdown to Drive, update a Doc tab with markdown content, or sync a markdown file to a specific Google Doc.
 last-validated: 2026-10-01
+allowed-tools:
+  - Bash(${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate *)
 ---
 
 # Scribe - Push
@@ -66,7 +68,7 @@ Important behaviour -
 - If `--tab-id` is present - run the Scribe helper against that tab, from wherever the file already is -
 
   ```bash
-  "${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account <email> --doc <doc-id> --tab <tab-id> --file <path> --write --check
+  ${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate --account <email> --doc <doc-id> --tab <tab-id> --file <path> --write --check
   ```
 
   It sends exactly what `manage_doc_tab populate_from_markdown` with `replace_existing: true` sends, but the file never passes through your context. Full usage is in the docs skill under "Populate a tab from a file". For a small file (under about 8 KB) inline `manage_doc_tab populate_from_markdown` is acceptable; for anything larger, or a batch of files, use the helper.
@@ -82,7 +84,7 @@ Always pass `user_google_email` (either the --account override or the resolved d
 Read the tab back against the source file before reporting success -
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account <email> --doc <doc-id> --tab <tab-id> --file <path> --check
+${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate --account <email> --doc <doc-id> --tab <tab-id> --file <path> --check
 ```
 
 (A helper `--write` already runs this.) Exit 0 means every text block of the file is in the tab, in order. Exit 4 means a write was sent but its outcome is unknown - run `--check` before anything else. Exit 1 lists what is missing - most often content the converter drops silently (indented code blocks, raw HTML blocks, second paragraphs inside a list item; see the docs skill Gotchas), which needs rewriting in the source and a re-push. The check is on text, not layout, and it prints `WARN` lines for the two layout failures it can see - flattened tables (handled below) and flattened nested lists.
