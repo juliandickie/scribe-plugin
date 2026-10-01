@@ -16,12 +16,12 @@ The plugin's distinctive value is the integration polish, not the underlying MCP
 
 ## Current state - as of 2026-10-01
 
-- **Plugin version** - 1.3.1 on branch `tab-populate-helper` (PR open, not merged, 2026-10-01). Main carries 1.3.0 in plugin.json, merged 2026-09-14 with the 1.26.1 pin bump but never tagged or released, and marketplace.json on main still said 1.2.0 - the 1.3.1 PR moves both files to 1.3.1. The latest tag and GitHub release is still v1.2.0. Because the outfit marketplace installs Scribe from the unpinned git URL, whatever is on main is what installers get, tag or no tag.
+- **Plugin version** - 1.3.2 on branch `skill-allowed-tools` (PR open). 1.3.1 is on main (PR #3, merge `54e070f`) and is the latest tag and GitHub release; v1.3.0 was tagged retroactively on `6d37539` on 2026-10-01. Because the outfit marketplace installs Scribe from the unpinned git URL, whatever is on main is what installers get, tag or no tag.
 - **Pinned upstream version** - `workspace-mcp@1.26.1` from PyPI. PyPI latest is 1.30.0 (checked 2026-10-01, not bumped - see "What's in the PyPI package right now")
-- **Tab populate helper** - `scripts/doc-tab-populate` (1.3.1). Fills an existing Doc tab from a markdown file with the server's own converter, then reads the tab back and checks it. Taught in the docs, push and workspace skills. Retirement plan in `docs/superpowers/plans/2026-10-01-doc-tab-populate-retirement.md`
-- **Distribution** - GitHub at `juliandickie/scribe-plugin`, public, MIT licensed, with v1.2.0 release tagged
+- **Tab populate helper** - `scripts/doc-tab-populate` (since 1.3.1; pre-approved through `allowed-tools` in the docs and push skills since 1.3.2). Fills an existing Doc tab from a markdown file with the server's own converter, then reads the tab back and checks it. Taught in the docs, push and workspace skills. Retirement plan in `docs/superpowers/plans/2026-10-01-doc-tab-populate-retirement.md`
+- **Distribution** - GitHub at `juliandickie/scribe-plugin`, public, MIT licensed, with v1.3.1 release tagged
 - **Marketplace install** - `/plugin marketplace add juliandickie/scribe-plugin` then `/plugin install scribe`
-- **Direct download** - `https://github.com/juliandickie/scribe-plugin/archive/refs/tags/v1.2.0.zip`
+- **Direct download** - `https://github.com/juliandickie/scribe-plugin/archive/refs/tags/v1.3.1.zip`
 - **Skill count** - 31 (6 existing infra + 1 orchestration + 10 service + 14 workflow)
 - **Tools enabled** - all 12 workspace-mcp tool groups
 - **Open issues for next dev cycle** - tracked in `docs/issues/` (gitignored, local only). Most recent entry - [`populate-from-markdown-table-rendering.md`](docs/issues/populate-from-markdown-table-rendering.md) covering the GFM table rendering bug in `manage_doc_tab populate_from_markdown` plus 4 adjacent observations, captured from a multi-table Doc rebuild on the iDD LPIS social media plan. Its 2026-10-01 update adds nested-list flattening, three silent drops (indented code, raw HTML blocks, later paragraphs of a list item), emoji corrupting every later paragraph's style, and append gluing onto a non-empty last paragraph, all confirmed live on 1.26.1.
@@ -291,6 +291,8 @@ Where it applies (as of 1.1.0):
 - **All 10 service skills** (gmail, calendar, docs, drive, sheets, slides, contacts, tasks, forms, chat) do NOT have it (auto-activate when their service is in scope).
 
 - **The `push` skill** does NOT have it (we want both - explicit `/scribe:push` invocation AND auto-activation when the user says "push this markdown to Drive").
+
+The `allowed-tools` field (as of 1.3.2) is set only on the docs and push skills, to `Bash(${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate *)`, so the helper runs without a permission prompt while either skill is active. Per the Claude Code skills docs it only PRE-APPROVES - it does not restrict, every other tool (including all MCP tools) stays callable. `${CLAUDE_PLUGIN_ROOT}` is substituted inline in skill bodies and in `allowed-tools`, but is NOT exported to the Bash shell, so skill prose must write the path through the variable, and unquoted, so the command text matches the rule (quote handling in rule matching is undocumented).
 
 The `argument-hint` field in skill frontmatter is the modern equivalent of `arguments` arrays from the legacy commands/ format. Use a string like `<file> [--folder <id>] [--account <email>]` rather than a structured list.
 

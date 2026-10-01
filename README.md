@@ -6,7 +6,7 @@
 
 ---
 
-**Version 1.3.1** | MIT licensed | Wraps [taylorwilsdon/google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp)
+**Version 1.3.2** | MIT licensed | Wraps [taylorwilsdon/google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp)
 
 ```bash
 /plugin marketplace add juliandickie/scribe-plugin
@@ -149,8 +149,8 @@ Syncing long markdown into Google Docs (course masters, reports, renders) used t
 Claude runs it for you, from the installed plugin folder -
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account you@example.com --doc <doc id> --list-tabs
-"${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate" --account you@example.com --doc <doc id> --tab <tab id> --file notes.md --write --check
+${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate --account you@example.com --doc <doc id> --list-tabs
+${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate --account you@example.com --doc <doc id> --tab <tab id> --file notes.md --write --check
 ```
 
 It reaches for it on its own when a sync is large or spans several Docs; the docs and push skills carry the details. It runs through `uvx` on the same pinned `workspace-mcp` the plugin uses, so there is nothing extra to install. The read-back check also flags what the markdown converter silently loses (flattened tables and nested lists, dropped indented code and HTML blocks), so a push is only called done when it really is.
