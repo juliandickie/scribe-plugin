@@ -191,7 +191,7 @@ Example - replacing the manifest args entirely:
   "mcpServers": {
     "scribe": {
       "args": [
-        "workspace-mcp@1.26.1",
+        "workspace-mcp@2.1.0",
         "--permissions", "gmail:readonly", "drive:full", "docs:full"
       ]
     }

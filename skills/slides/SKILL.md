@@ -23,13 +23,13 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.26.1 for Slides. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.1.0 for Slides. Pass `user_google_email` on every call.
 
 ### create_presentation
 
 Create a new presentation (new file in Drive).
 
-Parameters: `title`, `user_google_email`. No folder parameter on the pinned 1.26.1 - it lands in My Drive root; move it with `update_drive_file`.
+Parameters: `title`, `user_google_email`. No folder parameter on the pinned 2.1.0 - it lands in My Drive root; move it with `update_drive_file`.
 
 ### get_presentation
 
