@@ -105,7 +105,7 @@ Send a new message, reply, or forward. For a plain new message pass `to`, `subje
 
 Key optional params (the live tool schema carries the full list and defaults; these are the ones that change behaviour) -
 
-- `body_format` - `plain` (default) or `html`. Use `html` to send a formatted HTML email.
+- `body_format` - `plain` (default) or `html`. **Use `html` for any email a person reads.** `plain` sends `text/plain`, whose line breaks are fixed at about 70 characters when it is sent, so it cannot reflow on a phone, and a signature added on send (WiseStamp) arrives broken with it. Wrap each paragraph in `<p>`, never entity-escape the tags, and read the draft back raw to check `Content-Type: text/html` (dev-docs/2026-08-11-gmail-draft-plaintext-hard-wraps.md).
 
 - `cc`, `bcc` - additional recipients.
 
@@ -185,7 +185,7 @@ Create or delete filters.
 
 1. `get_gmail_message_content` to read the original message.
 
-2. `draft_gmail_message` with `to`/`subject`/`body` derived from context. Always draft, never send unprompted unless the user explicitly says "send."
+2. `draft_gmail_message` with `to`/`subject`/`body` derived from context, `body_format: html` and `<p>` paragraphs. Always draft, never send unprompted unless the user explicitly says "send."
 
 ### Bulk archive read promotions
 
@@ -203,7 +203,7 @@ Create or delete filters.
 
 - Batch operations return per-item success/failure. Always check the response for partial failures before reporting success.
 
-- Email body can be plain text or HTML. Detect by content; the tool accepts either via `body` param.
+- Email body is plain text unless you pass `body_format: html` - the tool does not detect HTML from the content. A plain-text body is hard-wrapped at about 70 characters on send, and the stored draft still looks clean, so only the raw MIME shows it. Default to `html` for correspondence.
 
 - Attachments have three modes (url / path / content). Only `path` hits the `ALLOWED_FILE_DIRS` sandbox. For a file already in Drive or on an email, pass its `url` from `get_drive_file_download_url` / `get_gmail_attachment_content` and skip staging entirely.
 
