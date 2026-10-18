@@ -460,7 +460,7 @@ The `create` result carries the new `tab_id` but its `link` is the plain Doc URL
 
 Create a new doc.
 
-Parameters: `title`, optional `content` (plain text), `user_google_email`. There is no folder parameter on the pinned 1.26.1 - the Doc lands in My Drive root, so move it with `update_drive_file` (`add_parents`, `remove_parents`) when it belongs in a folder.
+Parameters: `title`, optional `content` (plain text), optional `folder_id` (the Drive folder to create it in), `user_google_email`. Without `folder_id` the Doc lands in My Drive root.
 
 The new Doc has a single tab titled "Tab 1" (`t.0`). If the Doc will hold named tabs, rename it with `manage_doc_tab rename` rather than leaving "Tab 1" in place.
 
@@ -536,7 +536,7 @@ Diagnostics tools.
 
 ## Populate a tab from a file - the helper
 
-Scribe ships `scripts/doc-tab-populate`, which fills an EXISTING tab from a markdown file on disk. It runs the server's own converter on the file and sends exactly the requests `populate_from_markdown` sends (verified structurally identical on 1.26.1), so the text never passes through the session's context and nothing is retyped. It also reads the tab back and checks it.
+Scribe ships `scripts/doc-tab-populate`, which fills an EXISTING tab from a markdown file on disk. It runs the server's own converter on the file and sends exactly the requests `populate_from_markdown` sends (verified structurally identical on 1.26.1; the writer and `manage_doc_tab` are unchanged through 2.1.0), so the text never passes through the session's context and nothing is retyped. It also reads the tab back and checks it.
 
 Use it when -
 
@@ -612,9 +612,9 @@ To overwrite a tab in place instead, skip step 1 and point `--tab` at the existi
 
 - `batch_update_doc` is atomic - if any operation fails, none are applied. Use for invariant-critical updates.
 
-- Tables - MANDATORY post-populate verification. `import_to_google_doc` renders GFM tables natively (it goes through Drive's file conversion). `populate_from_markdown` renders tables natively only once the workspace-mcp converter fix (2026-07, table support in the markdown writer, upstream PR #929) is in the pinned version; every released version through at least 1.30.0 (checked 2026-10-01; the current pin is 1.26.1) flattens every table to a single paragraph of raw pipe text while still returning success - a newer pin does NOT mean fixed until that PR merges. Because the failure is silent, after EVERY populate of table-bearing markdown run detailed `inspect_doc_structure` on the tab and check two things - the table count matches the source markdown, and no paragraph text starts with `| `. If a table flattened, run the repair pass - working bottom-up so indexes stay valid, for each pipe-text table replace the range `[start_index, end_index - 1]` with a single space via `modify_doc_text`, then `create_table_with_data` at `start_index + 1` with the 2D array parsed from the source markdown (always pass `tab_id`), then re-inspect to confirm table count matches and zero pipe paragraphs remain. Procedure proven 7-for-7 on 2026-07-13. Full history in `docs/issues/populate-from-markdown-table-rendering.md`.
+- Tables - MANDATORY post-populate verification. `import_to_google_doc` renders GFM tables natively (it goes through Drive's file conversion). `populate_from_markdown` renders tables natively only once the workspace-mcp converter fix (2026-07, table support in the markdown writer, upstream PR #929) is in the pinned version; every released version through at least 2.1.0 (checked 2026-10-15; the current pin is 2.1.0, and the markdown writer is byte-identical from 1.26.1 to 2.1.0) flattens every table to a single paragraph of raw pipe text while still returning success - a newer pin does NOT mean fixed until that PR merges. Because the failure is silent, after EVERY populate of table-bearing markdown run detailed `inspect_doc_structure` on the tab and check two things - the table count matches the source markdown, and no paragraph text starts with `| `. If a table flattened, run the repair pass - working bottom-up so indexes stay valid, for each pipe-text table replace the range `[start_index, end_index - 1]` with a single space via `modify_doc_text`, then `create_table_with_data` at `start_index + 1` with the 2D array parsed from the source markdown (always pass `tab_id`), then re-inspect to confirm table count matches and zero pipe paragraphs remain. Procedure proven 7-for-7 on 2026-07-13. Full history in `docs/issues/populate-from-markdown-table-rendering.md`.
 
-- Nested lists flatten - the converter emits every list item at nesting level 0 under one bullet style, so a two-level list becomes one flat list and a numbered list nested under bullets becomes bullets. Confirmed live on 1.26.1 (2026-10-01), unchanged through 1.30.0. When hierarchy matters, rewrite the nested items as a flat list with the parent named in each item, or apply nesting afterwards with `batch_update_doc`. The helper's check prints `WARN - nested lists flattened` when this happens.
+- Nested lists flatten - the converter emits every list item at nesting level 0 under one bullet style, so a two-level list becomes one flat list and a numbered list nested under bullets becomes bullets. Confirmed live on 1.26.1 (2026-10-01); the writer is unchanged through 2.1.0. When hierarchy matters, rewrite the nested items as a flat list with the parent named in each item, or apply nesting afterwards with `batch_update_doc`. The helper's check prints `WARN - nested lists flattened` when this happens.
 
 - Silent drops - three markdown constructs vanish on `populate_from_markdown` with a success response, confirmed live on 1.26.1. Indented (four-space) code blocks, top-level raw HTML blocks such as `<div>...</div>`, and every paragraph after the first inside a list item. Use fenced code blocks, avoid raw HTML, and keep list items to one paragraph. The helper's read-back check lists any such text as missing.
 
@@ -828,7 +828,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.26.1 for Sheets. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.1.0 for Sheets. Pass `user_google_email` on every call.
 
 ### list_spreadsheets
 
@@ -866,7 +866,7 @@ Add, update, or remove conditional formatting rules.
 
 Create a new spreadsheet (new file in Drive).
 
-Parameters: `title`, optional `sheet_names` (list of tab names), `user_google_email`. No folder parameter on the pinned 1.26.1 - it lands in My Drive root; move it with `update_drive_file`.
+Parameters: `title`, optional `sheet_names` (list of tab names), optional `folder_id` (the Drive folder to create it in), `user_google_email`. Without `folder_id` it lands in My Drive root.
 
 ### create_sheet
 
@@ -893,6 +893,26 @@ Parameters:
 - `user_google_email`
 
 `delete` removes the tab and its data, recoverable only through the spreadsheet's version history, so confirm with the user first. Tabs are addressed by title, so after a rename use the new title in later calls.
+
+### manage_named_range
+
+List, create, update, or delete named ranges in a spreadsheet. Added in workspace-mcp 1.29 (not in 1.26.1).
+
+Parameters:
+
+- `spreadsheet_id`
+
+- `action` - `"list"`, `"create"`, `"update"`, or `"delete"`
+
+- `name` - required for create; for update and delete it identifies the range (or pass `named_range_id`)
+
+- `range_name` - A1 range for create (e.g. `"Sheet1!A1:D10"`)
+
+- `new_name`, `new_range` - for update
+
+- `user_google_email`
+
+Formulas that use a deleted named range stop resolving, so confirm with the user before `delete`.
 
 ### list_sheet_tables
 
@@ -979,13 +999,13 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.26.1 for Slides. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.1.0 for Slides. Pass `user_google_email` on every call.
 
 ### create_presentation
 
 Create a new presentation (new file in Drive).
 
-Parameters: `title`, `user_google_email`. No folder parameter on the pinned 1.26.1 - it lands in My Drive root; move it with `update_drive_file`.
+Parameters: `title`, `user_google_email`. No folder parameter on the pinned 2.1.0 - it lands in My Drive root; move it with `update_drive_file`.
 
 ### get_presentation
 
@@ -1082,7 +1102,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.26.1 for Contacts. Pass `user_google_email` on every call. Mutations (create/update/delete) flow through `manage_contact` or `manage_contacts_batch` with action verbs.
+The following tools are exposed by workspace-mcp@2.1.0 for Contacts. Pass `user_google_email` on every call. Mutations (create/update/delete) flow through `manage_contact` or `manage_contacts_batch` with action verbs.
 
 ### list_contacts
 
@@ -1205,7 +1225,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.26.1 for Tasks. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.1.0 for Tasks. Pass `user_google_email` on every call.
 
 ### list_task_lists
 
@@ -1350,7 +1370,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.26.1 for Forms. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.1.0 for Forms. Pass `user_google_email` on every call.
 
 ### create_form
 
@@ -1479,7 +1499,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.26.1 for Google Chat. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.1.0 for Google Chat. Pass `user_google_email` on every call.
 
 ### list_spaces
 

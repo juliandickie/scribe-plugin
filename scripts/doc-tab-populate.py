@@ -202,7 +202,7 @@ def last_paragraph_has_text(doc: dict, tab_id: str) -> bool:
 
 def build_requests(to_requests, markdown: str, tab_id: str, end: int, append: bool,
                    break_first: bool = False) -> list:
-    """The exact request list manage_doc_tab populate_from_markdown sends (workspace-mcp 1.26.1),
+    """The exact request list manage_doc_tab populate_from_markdown sends (workspace-mcp 1.26.1, unchanged through 2.1.0),
     with one deliberate difference - when appending to a tab whose last paragraph has text
     (break_first), the tool glues the first appended paragraph onto it (confirmed live
     2026-10-01), so the helper inserts a paragraph break first."""
@@ -420,10 +420,12 @@ def read_source(path: str, creds_dir: Path, sandbox: bool) -> tuple[Path, str]:
     if is_secret(resolved, creds_dir):
         raise HelperError(f"refusing to read {resolved} - it is in a location that holds secrets")
     if sandbox:
-        from core.utils import validate_file_path
+        from core import utils as core_utils
+        # UserInputError arrived in 2.0 (local file access disabled); absent on older pins.
+        user_input_error = getattr(core_utils, "UserInputError", ValueError)
         try:
-            resolved = validate_file_path(str(resolved))
-        except (ValueError, FileNotFoundError) as exc:
+            resolved = core_utils.validate_file_path(str(resolved))
+        except (ValueError, FileNotFoundError, user_input_error) as exc:
             raise HelperError(f"--sandbox - {exc}")
     try:
         return resolved, resolved.read_text(encoding="utf-8-sig")
