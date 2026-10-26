@@ -25,7 +25,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@2.1.0 for Sheets. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.2.0 for Sheets. Pass `user_google_email` on every call.
 
 ### list_spreadsheets
 

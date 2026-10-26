@@ -33,7 +33,7 @@
     "scribe": {
       "command": "uvx",
       "args": [
-        "workspace-mcp@2.1.0",
+        "workspace-mcp@2.2.0",
         "--tools",
         "appscript",
         "calendar",

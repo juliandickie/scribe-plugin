@@ -27,11 +27,23 @@ TO_REQUESTS = dtp.load_server()
 
 # ---------------------------------------------------------------- Docs API simulator
 
+def utf16_cells(text):
+    """One cell per UTF-16 code unit, as Google Docs indexes - a character outside the BMP takes two
+    cells, the second an empty placeholder so joined cell text is still the original string."""
+    cells = []
+    for c in text:
+        cells.append([c, False, 0])
+        if ord(c) > 0xFFFF:
+            cells.append(["", False, 0])
+    return cells
+
+
 class FakeTab:
-    """A tab body as a list of [char, is_bullet, nesting] cells. Index 1 is the first char."""
+    """A tab body as a list of [char, is_bullet, nesting] cells, one per UTF-16 code unit.
+    Index 1 is the first char."""
 
     def __init__(self, text="\n"):
-        self.cells = [[c, False, 0] for c in text]
+        self.cells = utf16_cells(text)
 
     def apply(self, requests, tab_id):
         for req in requests:
@@ -40,7 +52,11 @@ class FakeTab:
                 assert loc.get("tabId") == tab_id, req
                 i = loc["index"] - 1
                 assert 0 <= i < len(self.cells), (i, len(self.cells))
-                self.cells[i:i] = [[c, False, 0] for c in req["insertText"]["text"]]
+                self.cells[i:i] = utf16_cells(req["insertText"]["text"])
+            elif "deleteParagraphBullets" in req:
+                rng = req["deleteParagraphBullets"]["range"]
+                for cell in self.cells[rng["startIndex"] - 1:rng["endIndex"] - 1]:
+                    cell[1] = False
             elif "deleteContentRange" in req:
                 rng = req["deleteContentRange"]["range"]
                 assert rng.get("tabId") == tab_id, req
@@ -183,7 +199,15 @@ class ServerGuard(unittest.TestCase):
         try:
             from gdocs.docs_tools import _find_tab_end_index
         except ImportError:
-            self.skipTest("server no longer has _find_tab_end_index, the helper's own copy is authoritative")
+            try:  # 2.2.0 replaced it; populate_from_markdown takes endIndex from the last element
+                from gdocs.docs_tools import _find_tab_last_element
+            except ImportError:
+                self.skipTest("server has neither _find_tab_end_index nor _find_tab_last_element, "
+                              "the helper's own copy is authoritative")
+
+            def _find_tab_end_index(doc, tid):
+                last = _find_tab_last_element(doc, tid)
+                return None if last is None else last.get("endIndex", 1)
         doc = fake_doc([
             ("t.0", "One", FakeTab("hello\nworld\n"), [("t.c", "Child", FakeTab("child text\n"))]),
             ("t.1", "Empty", FakeTab()),
@@ -260,6 +284,12 @@ class Check(unittest.TestCase):
 
     def test_tables_flatten_warning(self):
         md = "Intro.\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n"
+        if any("insertTable" in r for r in TO_REQUESTS(md, tab_id="t.0")):
+            # 2.1.2 on renders tables natively (upstream PR #929), which this simulator does not
+            # model, so check the warning against a tab that holds the old flattened pipe text
+            flat = fake_doc([("t.0", "T", FakeTab("Intro.\n| A | B |\n| --- | --- |\n| 1 | 2 |\n"))])
+            self.assertTrue(any("tables flattened" in w for w in dtp.check(md, flat, "t.0")["warnings"]))
+            return
         result = dtp.check(md, self.write(md), "t.0")
         self.assertEqual(result["missing"], [])
         if dtp.read_tab(self.write(md), "t.0")["stats"]["pipe_paragraphs"]:
@@ -440,7 +470,9 @@ class CheckOrder(unittest.TestCase):
     def test_astral_characters_warn(self):
         result = dtp.check("Hi \U0001F600 there.\n", self.doc("Hi \U0001F600 there."), "t.0")
         self.assertEqual(result["missing"], [])
-        self.assertTrue(any("Basic Multilingual Plane" in w for w in result["warnings"]))
+        warned = any("Basic Multilingual Plane" in w for w in result["warnings"])
+        # 2.1.2 on counts UTF-16 offsets, so the warning stands down
+        self.assertEqual(warned, not dtp.writer_features()["utf16"])
 
 
 class SafetyAndErrors(unittest.TestCase):
@@ -571,6 +603,13 @@ class EndToEndSafety(unittest.TestCase):
 
     def test_astral_characters_refuse_writes_unless_allowed(self):
         self.md.write_text("# Party \U0001F389\n\nText.\n", encoding="utf-8")
+        if dtp.writer_features()["utf16"]:
+            # 2.1.2 on counts UTF-16 offsets, so emoji no longer shift styles and nothing is refused
+            code, out = self.run_cli("--write", "--strict")
+            self.assertEqual(code, 0, out)
+            self.assertNotIn("Basic Multilingual Plane", out)
+            self.assertIn("Party \U0001F389", "".join(c[0] for c in self.svc.tabs["t.0"].cells))
+            return
         with self.assertRaises(dtp.HelperError) as cm:
             self.run_cli("--write")
         self.assertIn("--allow-astral", str(cm.exception))
@@ -578,6 +617,18 @@ class EndToEndSafety(unittest.TestCase):
         code, out = self.run_cli("--write", "--allow-astral", "--strict")
         self.assertEqual(code, 3, out)
         self.assertEqual(len(self.svc.writes), 1)
+
+    def test_append_after_a_bullet_drops_the_inherited_bullet(self):
+        if not dtp.writer_features()["insert"]:
+            self.skipTest("converter predates build_markdown_insert_requests (workspace-mcp 2.1.2)")
+        tab = self.svc.tabs["t.0"]
+        tab.cells = [[c, True, 0] for c in "a bullet\n"]
+        self.md.write_text("Plain paragraph.\n", encoding="utf-8")
+        code, out = self.run_cli("--append")
+        self.assertEqual(code, 0, out)
+        self.assertTrue(any("deleteParagraphBullets" in r for r in self.svc.writes[0]))
+        paras = [("".join(c[0] for c in cells).strip(), cells[0][1]) for _, _, cells in tab.paragraphs()]
+        self.assertEqual(paras[:2], [("a bullet", True), ("Plain paragraph.", False)])
 
     def test_version_mismatch_refuses_writes(self):
         self.md.write_text("New text.\n", encoding="utf-8")

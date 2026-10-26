@@ -105,11 +105,15 @@ Send a new message, reply, or forward. For a plain new message pass `to`, `subje
 
 Key optional params (the live tool schema carries the full list and defaults; these are the ones that change behaviour) -
 
-- `body_format` - `plain` (default) or `html`. **Use `html` for any email a person reads.** `plain` sends `text/plain`, whose line breaks are fixed at about 70 characters when it is sent, so it cannot reflow on a phone, and a signature added on send (WiseStamp) arrives broken with it. Wrap each paragraph in `<p>`, never entity-escape the tags, and read the draft back raw to check `Content-Type: text/html` (dev-docs/2026-08-11-gmail-draft-plaintext-hard-wraps.md).
+- `body_format` - `plain` (default) or `html`. **Use `html` for any email a person reads.** `plain` sends `text/plain`, whose line breaks are fixed at about 70 characters when it is sent, so it cannot reflow on a phone, and a signature added on send (WiseStamp) arrives broken with it. Wrap each paragraph in `<p>`, never entity-escape the tags, and read the draft back raw to check `Content-Type: text/html` (dev-docs/2026-08-11-gmail-draft-plaintext-hard-wraps.md). From workspace-mcp 2.1.2 an entity-escaped HTML body (`&lt;p&gt;...`) is rejected before sending.
 
 - `cc`, `bcc` - additional recipients.
 
-- `from_email` plus `from_name` - send from a configured Gmail Send As alias (set up under Settings > Accounts > Send mail as). `from_name` sets the display name, producing a `Name <email>` From header.
+- `from_email` plus `from_name` - send from a configured Gmail Send As alias (set up under Settings > Accounts > Send mail as). `from_name` sets the display name, producing a `Name <email>` From header. From workspace-mcp 2.1.2 an address that is not one of the account's Send As identities fails with the accepted addresses listed; earlier versions sent from the default address without saying so.
+
+- `subject` - from workspace-mcp 2.2.0 a reply with `thread_id` and no `subject` inherits the parent's subject, adding `Re:` only if it is absent.
+
+- No retry on an ambiguous send - from workspace-mcp 2.1.1 a send or forward that times out, drops or gets a 5xx is not retried; the error says the message may already be delivered. Check the Sent folder before sending again, or the recipient gets two copies.
 
 - `include_signature` - defaults true and appends the Gmail signature. Set false when the body already carries its own sign-off, otherwise the message gets a double signature.
 
