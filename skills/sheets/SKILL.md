@@ -25,7 +25,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.26.1 for Sheets. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.2.0 for Sheets. Pass `user_google_email` on every call.
 
 ### list_spreadsheets
 
@@ -63,7 +63,7 @@ Add, update, or remove conditional formatting rules.
 
 Create a new spreadsheet (new file in Drive).
 
-Parameters: `title`, optional `sheet_names` (list of tab names), `user_google_email`. No folder parameter on the pinned 1.26.1 - it lands in My Drive root; move it with `update_drive_file`.
+Parameters: `title`, optional `sheet_names` (list of tab names), optional `folder_id` (the Drive folder to create it in), `user_google_email`. Without `folder_id` it lands in My Drive root.
 
 ### create_sheet
 
@@ -90,6 +90,26 @@ Parameters:
 - `user_google_email`
 
 `delete` removes the tab and its data, recoverable only through the spreadsheet's version history, so confirm with the user first. Tabs are addressed by title, so after a rename use the new title in later calls.
+
+### manage_named_range
+
+List, create, update, or delete named ranges in a spreadsheet. Added in workspace-mcp 1.29 (not in 1.26.1).
+
+Parameters:
+
+- `spreadsheet_id`
+
+- `action` - `"list"`, `"create"`, `"update"`, or `"delete"`
+
+- `name` - required for create; for update and delete it identifies the range (or pass `named_range_id`)
+
+- `range_name` - A1 range for create (e.g. `"Sheet1!A1:D10"`)
+
+- `new_name`, `new_range` - for update
+
+- `user_google_email`
+
+Formulas that use a deleted named range stop resolving, so confirm with the user before `delete`.
 
 ### list_sheet_tables
 

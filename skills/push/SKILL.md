@@ -89,9 +89,9 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/doc-tab-populate --account <email> --doc <doc-id> 
 
 (A helper `--write` already runs this.) Exit 0 means every text block of the file is in the tab, in order. Exit 4 means a write was sent but its outcome is unknown - run `--check` before anything else. Exit 1 lists what is missing - most often content the converter drops silently (indented code blocks, raw HTML blocks, second paragraphs inside a list item; see the docs skill Gotchas), which needs rewriting in the source and a re-push. The check is on text, not layout, and it prints `WARN` lines for the two layout failures it can see - flattened tables (handled below) and flattened nested lists.
 
-## Table integrity check - MANDATORY after any populate route
+## Table integrity check - after any populate route
 
-Both tab routes above (`--tab-id`, and `--doc-id` without `--tab-id`) go through the converter behind `manage_doc_tab populate_from_markdown` (the helper uses the same one), whose table rendering fails SILENTLY on workspace-mcp pins that predate the 2026-07 converter table fix - every GFM table flattens to one paragraph of raw pipe text and the tool still reports success. The `import_to_google_doc` route is unaffected (Drive's native conversion renders tables correctly).
+Both tab routes above (`--tab-id`, and `--doc-id` without `--tab-id`) go through the converter behind `manage_doc_tab populate_from_markdown` (the helper uses the same one). From workspace-mcp 2.1.2 (upstream PR #929) it renders GFM tables as native Doc tables, and the pinned 2.2.0 emits them (checked offline 2026-10-26; the live acceptance test is still pending). On 2.1.0 and earlier its table rendering failed SILENTLY - every GFM table flattened to one paragraph of raw pipe text and the tool still reported success - so the check stays until a live push confirms the fix. The `import_to_google_doc` route is unaffected (Drive's native conversion renders tables correctly).
 
 If the source markdown contains any GFM table (a separator row like `|---|---|`), then after the populate succeeds -
 
@@ -101,7 +101,7 @@ If the source markdown contains any GFM table (a separator row like `|---|---|`)
 
 3. If any table flattened, run the repair pass from the docs skill Gotchas - bottom-up per pipe-text table, `modify_doc_text` replaces `[start_index, end_index - 1]` with a single space, then `create_table_with_data` at `start_index + 1` with the 2D array parsed from the source markdown (always pass `tab_id`) - and re-inspect to confirm.
 
-Do not report the push complete until this check has passed. If the helper refuses the file for emoji (`--allow-astral`), strip them from a copy of the file and push the copy - on this workspace-mcp they corrupt every later paragraph's style (docs skill Gotchas). A re-synced Doc with flattened tables is the single most recurrent defect on this path.
+Do not report the push complete until this check has passed. If the helper refuses the file for emoji (`--allow-astral`, which happens only under a converter older than 2.1.2), strip them from a copy of the file and push the copy - on those versions they corrupt every later paragraph's style (docs skill Gotchas). A re-synced Doc with flattened tables was the single most recurrent defect on this path before 2.1.2.
 
 ## Auth precondition
 

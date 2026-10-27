@@ -31,11 +31,14 @@ the tab counts. --list-tabs prints each tab's id, title and shareable URL and no
 
 Safety. A write is refused when the file has no text at all (a truncated export would otherwise
 blank the tab) unless --allow-empty is given; when the file holds emoji or other characters
-outside the Basic Multilingual Plane (the converter's offsets drift and every later paragraph
-inherits the wrong style) unless --allow-astral is given; and when the running workspace-mcp is
-not the version the plugin pins. When appending to a tab whose last paragraph has text, the
-helper inserts a paragraph break first - the tool glues the first appended paragraph onto it. The write carries the Doc's revision id, so a Doc edited between the
-read and the write fails loudly instead of being cleared at stale offsets.
+outside the Basic Multilingual Plane and the converter predates workspace-mcp 2.1.2 (its offsets
+drift and every later paragraph inherits the wrong style) unless --allow-astral is given; and when
+the running workspace-mcp is not the version the plugin pins. An append uses the server's own
+insert rule from 2.1.2 on (a paragraph break before the appended text when the last paragraph is
+not empty, and no inherited bullet); on older converters the helper inserts the break itself,
+because the tool glued the first appended paragraph onto the last one. The write carries the Doc's
+revision id, so a Doc edited between the read and the write fails loudly instead of being cleared
+at stale offsets.
 
 The check is on TEXT, not layout. Exit codes -
     0  every text block is present
@@ -70,7 +73,7 @@ import sys
 import time
 from pathlib import Path
 
-HELPER_VERSION = "1.1.0"
+HELPER_VERSION = "1.2.0"
 HERE = Path(__file__).resolve().parent
 MANIFEST = HERE.parent / ".claude-plugin" / "plugin.json"
 
@@ -179,7 +182,8 @@ def find_tab(doc: dict, tab_id: str):
 
 def tab_end_index(doc: dict, tab_id: str):
     """End index of a tab's body. Same contract as the server's private
-    gdocs.docs_tools._find_tab_end_index, which the offline tests compare against."""
+    gdocs.docs_tools._find_tab_end_index (2.2.0 - the endIndex of _find_tab_last_element), which
+    the offline tests compare against."""
     tab = find_tab(doc, tab_id)
     if tab is None or "documentTab" not in tab:
         return None
@@ -191,23 +195,47 @@ def append_index(end: int) -> int:
     return end - 1 if end > 2 else 1
 
 
-def last_paragraph_has_text(doc: dict, tab_id: str) -> bool:
+def last_element(doc: dict, tab_id: str) -> dict:
     tab = find_tab(doc, tab_id)
     content = (tab or {}).get("documentTab", {}).get("body", {}).get("content", [])
-    last = content[-1] if content else {}
+    return content[-1] if content else {}
+
+
+def last_paragraph_has_text(doc: dict, tab_id: str) -> bool:
     text = "".join(e.get("textRun", {}).get("content", "")
-                   for e in last.get("paragraph", {}).get("elements", []))
+                   for e in last_element(doc, tab_id).get("paragraph", {}).get("elements", []))
     return bool(text.strip())
 
 
+def writer_features() -> dict:
+    """What the loaded converter fixes itself (workspace-mcp 2.1.2 on), so the helper's own
+    workarounds stand down - UTF-16 offsets (emoji no longer shift styles) and the append insert."""
+    writer = sys.modules.get("gdocs.docs_markdown_writer")
+    return {"utf16": hasattr(writer, "_utf16_len"),
+            "insert": getattr(writer, "build_markdown_insert_requests", None)}
+
+
+def append_flags(doc: dict, tab_id: str, end: int, insert) -> tuple[bool, bool]:
+    """(break_first, drop_bullet) for an append - the server's own rule when the converter has
+    build_markdown_insert_requests, else the helper's 1.26.1-era break."""
+    if insert is None:
+        return last_paragraph_has_text(doc, tab_id), False
+    last, at = last_element(doc, tab_id), append_index(end)
+    return last.get("startIndex", at) < at, "bullet" in last.get("paragraph", {})
+
+
 def build_requests(to_requests, markdown: str, tab_id: str, end: int, append: bool,
-                   break_first: bool = False) -> list:
-    """The exact request list manage_doc_tab populate_from_markdown sends (workspace-mcp 1.26.1),
-    with one deliberate difference - when appending to a tab whose last paragraph has text
-    (break_first), the tool glues the first appended paragraph onto it (confirmed live
-    2026-10-01), so the helper inserts a paragraph break first."""
+                   break_first: bool = False, insert=None, drop_bullet: bool = False) -> list:
+    """The exact request list manage_doc_tab populate_from_markdown sends. A replace is unchanged
+    from 1.26.1 through 2.2.0. An append goes through the server's build_markdown_insert_requests
+    when the converter has it (2.1.2 on); on older converters the tool glued the first appended
+    paragraph onto a last paragraph with text (confirmed live 2026-10-01), so with break_first the
+    helper inserts a paragraph break first."""
     if append:
         at = append_index(end)
+        if insert is not None:
+            return insert(markdown, at, tab_id=tab_id, split_paragraph=break_first,
+                          drop_bullet=drop_bullet)
         if break_first:
             location = {"index": at, "tabId": tab_id}
             return ([{"insertText": {"location": location, "text": "\n"}}]
@@ -365,7 +393,7 @@ def check(markdown: str, doc: dict, tab_id: str, from_index: int = 0) -> dict:
         warnings.append(
             f"nested lists flattened - source has {src['nested_items']} nested list items, tab has "
             f"{tab['nested_bullets']} nested bullets. The converter renders every list level flat.")
-    if src["astral"]:
+    if src["astral"] and not writer_features()["utf16"]:
         warnings.append(astral_warning(src["astral"]))
     return {"expected": len(expected), "missing": missing, "warnings": warnings,
             "source": src, "tab": tab}
@@ -420,10 +448,12 @@ def read_source(path: str, creds_dir: Path, sandbox: bool) -> tuple[Path, str]:
     if is_secret(resolved, creds_dir):
         raise HelperError(f"refusing to read {resolved} - it is in a location that holds secrets")
     if sandbox:
-        from core.utils import validate_file_path
+        from core import utils as core_utils
+        # UserInputError arrived in 2.0 (local file access disabled); absent on older pins.
+        user_input_error = getattr(core_utils, "UserInputError", ValueError)
         try:
-            resolved = validate_file_path(str(resolved))
-        except (ValueError, FileNotFoundError) as exc:
+            resolved = core_utils.validate_file_path(str(resolved))
+        except (ValueError, FileNotFoundError, user_input_error) as exc:
             raise HelperError(f"--sandbox - {exc}")
     try:
         return resolved, resolved.read_text(encoding="utf-8-sig")
@@ -593,17 +623,21 @@ def run(argv=None) -> int:
         raise HelperError(f"tab {a.tab} not found in {a.doc}. Tabs are - {listing}")
     title = next(t for tid, t, _ in tabs if tid == a.tab)
     blocks, src = source_blocks(source)
-    break_first = a.append and last_paragraph_has_text(doc, a.tab)
-    requests = build_requests(to_requests, source, a.tab, end, a.append, break_first)
+    features = writer_features()
+    break_first, drop_bullet = (append_flags(doc, a.tab, end, features["insert"]) if a.append
+                                else (False, False))
+    requests = build_requests(to_requests, source, a.tab, end, a.append, break_first,
+                              features["insert"], drop_bullet)
     action = "append after" if a.append else "replace"
     print(f"{doc.get('title', '')} - tab '{title}' ({a.tab}); {path.name} {len(source)} chars, "
           f"{len(blocks)} text blocks; {len(requests)} requests; {action} {max(0, end - 2)} existing chars")
-    if src["astral"]:
+    astral_risk = src["astral"] and not features["utf16"]
+    if astral_risk:
         print(f"WARN - {astral_warning(src['astral'])}")
 
     from_index = append_index(end) + break_first if a.append else 0
     if a.write or a.append:
-        if src["astral"] and not a.allow_astral:
+        if astral_risk and not a.allow_astral:
             raise HelperError(f"{path.name} contains {src['astral']} emoji or other character(s) outside the "
                               "Basic Multilingual Plane, which corrupt the tab's paragraph styles on this "
                               "workspace-mcp (see the WARN above). Remove them, or pass --allow-astral to "

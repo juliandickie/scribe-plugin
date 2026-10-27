@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-WORKSPACE_MCP_VERSION="1.26.1"
+WORKSPACE_MCP_VERSION="2.2.0"
 
 # Idempotency guard - skip if workspace-mcp is already installed
 if command -v workspace-mcp >/dev/null 2>&1; then

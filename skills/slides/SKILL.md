@@ -23,13 +23,13 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@1.26.1 for Slides. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.2.0 for Slides. Pass `user_google_email` on every call.
 
 ### create_presentation
 
 Create a new presentation (new file in Drive).
 
-Parameters: `title`, `user_google_email`. No folder parameter on the pinned 1.26.1 - it lands in My Drive root; move it with `update_drive_file`.
+Parameters: `title`, `user_google_email`. No folder parameter on the pinned 2.2.0 - it lands in My Drive root; move it with `update_drive_file`.
 
 ### get_presentation
 
@@ -53,9 +53,19 @@ Parameters:
 
 Read a single slide (page) by ID.
 
-### get_page_thumbnail
+### render_page_to_image
 
-Get a thumbnail image of a specific slide.
+Render a slide (or any page, including a notes page) to an image and return it as image content, so you can look at its layout and visuals directly. Replaced `get_page_thumbnail` in workspace-mcp 2.2.0, which returned a thumbnail URL instead of the image.
+
+Parameters:
+
+- `presentation_id`
+
+- `page_object_id` - the slide's object ID (from `get_presentation`)
+
+- `size` - `"SMALL"` (200px, layout only, text unreadable), `"MEDIUM"` (800px, the default, reads titles and body text), `"LARGE"` (1600px, for small text such as tables, chart labels and footnotes) or `"WIDTH2000_PX"` (rarely reads more than LARGE). Start at MEDIUM; LARGE costs about four times the image tokens.
+
+- `user_google_email`
 
 ## Common patterns
 
