@@ -53,6 +53,12 @@ Parameters:
 
 - `full` (optional) - return the complete message with no truncation limit. In the stdio deployment Scribe uses, a large body is saved to the attachments directory and the file path returned. Works with all `body_format` values including `raw` (byte-exact `.eml`).
 
+- `page_offset` and `page_size` (optional, workspace-mcp 2.3.0) - read a long body in pages of up to 20,000 characters: start at 0 and follow `next_offset` until `complete`; `expected_sha256` rejects the page if the body changed since the previous read
+
+- `include_links` (optional) - with `body_format: text`, append a LINKS section listing the http(s) URLs the text rendering drops; also on the thread and batch reads
+
+- `include_headers` (optional) - set false to omit the Subject, From, To and Date summary
+
 Returns: full message body (text or HTML), headers, attachment metadata.
 
 ### get_gmail_messages_content_batch
@@ -105,7 +111,7 @@ Send a new message, reply, or forward. For a plain new message pass `to`, `subje
 
 Key optional params (the live tool schema carries the full list and defaults; these are the ones that change behaviour) -
 
-- `body_format` - `plain` (default) or `html`. **Use `html` for any email a person reads.** `plain` sends `text/plain`, whose line breaks are fixed at about 70 characters when it is sent, so it cannot reflow on a phone, and a signature added on send (WiseStamp) arrives broken with it. Wrap each paragraph in `<p>`, never entity-escape the tags, and read the draft back raw to check `Content-Type: text/html` (dev-docs/2026-08-11-gmail-draft-plaintext-hard-wraps.md). From workspace-mcp 2.1.2 an entity-escaped HTML body (`&lt;p&gt;...`) is rejected before sending.
+- `body_format` - `plain` (default) or `html`. **Use `html` for any email a person reads.** `plain` sends `text/plain`, whose line breaks are fixed at about 70 characters when it is sent, so it cannot reflow on a phone, and a signature added on send (WiseStamp) arrives broken with it. Wrap each paragraph in `<p>`, never entity-escape the tags, and read the draft back raw to check `Content-Type: text/html` (dev-docs/2026-08-11-gmail-draft-plaintext-hard-wraps.md). workspace-mcp 2.4.1 gives plain-text drafts and sends with attachments the same HTML alternative as attachment-free plain messages, so the ~76 character hard wrap on send is fixed upstream, but `html` stays the rule - WiseStamp and the reader's client still need real paragraphs. From workspace-mcp 2.1.2 an entity-escaped HTML body (`&lt;p&gt;...`) is rejected before sending.
 
 - `cc`, `bcc` - additional recipients.
 
@@ -207,7 +213,7 @@ Create or delete filters.
 
 - Batch operations return per-item success/failure. Always check the response for partial failures before reporting success.
 
-- Email body is plain text unless you pass `body_format: html` - the tool does not detect HTML from the content. A plain-text body is hard-wrapped at about 70 characters on send, and the stored draft still looks clean, so only the raw MIME shows it. Default to `html` for correspondence.
+- Email body is plain text unless you pass `body_format: html` - the tool does not detect HTML from the content. A plain-text body is hard-wrapped at about 70 characters on send, and the stored draft still looks clean, so only the raw MIME shows it. Fixed upstream in workspace-mcp 2.4.1 for plain bodies with attachments; keep `html` anyway. Default to `html` for correspondence.
 
 - Attachments have three modes (url / path / content). Only `path` hits the `ALLOWED_FILE_DIRS` sandbox. For a file already in Drive or on an email, pass its `url` from `get_drive_file_download_url` / `get_gmail_attachment_content` and skip staging entirely.
 

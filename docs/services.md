@@ -58,6 +58,12 @@ Parameters:
 
 - `full` (optional) - return the complete message with no truncation limit. In the stdio deployment Scribe uses, a large body is saved to the attachments directory and the file path returned. Works with all `body_format` values including `raw` (byte-exact `.eml`).
 
+- `page_offset` and `page_size` (optional, workspace-mcp 2.3.0) - read a long body in pages of up to 20,000 characters: start at 0 and follow `next_offset` until `complete`; `expected_sha256` rejects the page if the body changed since the previous read
+
+- `include_links` (optional) - with `body_format: text`, append a LINKS section listing the http(s) URLs the text rendering drops; also on the thread and batch reads
+
+- `include_headers` (optional) - set false to omit the Subject, From, To and Date summary
+
 Returns: full message body (text or HTML), headers, attachment metadata.
 
 ### get_gmail_messages_content_batch
@@ -277,6 +283,8 @@ Parameters:
 
 - `send_updates` - `"all"` (default), `"externalOnly"`, or `"none"` to control notification emails
 
+- `this_and_following` - on `update` of one instance of a recurring event, applies the change to that instance and every later one (the original series ends before it and a new series starts there); earlier instances are kept. Default false. Added in workspace-mcp 2.5.0
+
 - `calendar_id` (defaults to `"primary"`)
 
 - `user_google_email`
@@ -305,13 +313,19 @@ Parameters:
 
 - `user_google_email`
 
-### create_calendar
+### manage_calendar
 
-Create a new calendar.
+Create a secondary calendar or manage who a calendar is shared with. Replaced `create_calendar` in workspace-mcp 2.4.0 - `manage_calendar` with `action: "create"` takes the same `summary` and `description` and returns the same output.
 
 Parameters:
 
-- `summary`, `description`
+- `action` - `"create"` (uses `summary`, `description`, `timezone`), `"list_sharing"` (uses `calendar_id`, `page_token`), `"share"` (uses `calendar_id`, `role`, `scope_type`, `scope_value`, `send_notifications`), `"update_sharing"` (uses `calendar_id`, `rule_id`, `role`, `send_notifications`) or `"unshare"` (uses `calendar_id`, `rule_id`)
+
+- `role` - `"freeBusyReader"`, `"reader"`, `"writerWithoutPrivateAccess"`, `"writer"`, `"owner"` or `"none"`
+
+- `scope_type` - `"user"` (default), `"group"`, `"domain"` or `"default"` (public); `scope_value` is the email address or domain name
+
+- `send_notifications` - email the grantee on share and update_sharing, default true
 
 - `user_google_email`
 
@@ -412,15 +426,15 @@ The following tools are exposed by workspace-mcp for Docs. Pass `user_google_ema
 
 ### get_doc_content
 
-Read full doc text.
+Read full doc text, or one section of it.
 
-Parameters: `document_id`, `user_google_email`.
+Parameters: `document_id`, `user_google_email`, optional `heading` and `heading_level` (workspace-mcp 2.4.0) - pass the text of a body heading (case-insensitive, it must match exactly one; `heading_level` 1 to 6 narrows the match) to get that heading and everything under it up to the next heading of equal or shallower level. Native Google Docs only; `tab_id` is required when the doc has several tabs.
 
 ### get_doc_as_markdown
 
-Read doc as markdown.
+Read doc as markdown, or one section of it.
 
-Parameters: `document_id`, `user_google_email`.
+Parameters: `document_id`, `user_google_email`, optional `heading` and `heading_level` as on `get_doc_content`.
 
 ### inspect_doc_structure
 
@@ -487,6 +501,8 @@ Like `create_doc`, the imported Doc arrives with a single tab titled "Tab 1". Re
 Apply multiple operations in one atomic call.
 
 Parameters: `document_id`, `requests[]`, `user_google_email`.
+
+`insert_date` (workspace-mcp 2.4.2) inserts a date smart chip, with an optional date or time format and timezone; placement works like `insert_person`. Each `find_replace` now reports `Replaced N occurrence(s)`, including 0 when nothing matched.
 
 ### find_and_replace_doc
 
@@ -687,7 +703,9 @@ Convenience tool to list Docs in a folder.
 
 ### get_drive_file_content
 
-Read file content for supported types.
+Read file content for supported types (native Docs, Sheets and Slides as text or CSV, Office files, PDFs, images). From workspace-mcp 2.3.0 a call returns at most 40,000 characters and ends with the `offset` to continue from; pass `offset` to read on, or `full_content: true` to get everything from the offset in one call. Fetched text is cached for 10 minutes, so follow-up pages skip the download.
+
+Parameters: `user_google_email`, `user_google_email`, optional `offset`, `full_content`.
 
 ### get_drive_file_download_url
 
@@ -708,6 +726,8 @@ Parameters:
 ### create_drive_file
 
 Create a Drive file from content. Accepts inline text content, a `fileUrl` reference, or inline binary via `base64_content` (with optional `base64_sha256` integrity check and `content_mime_type`) - no separate upload step needed for binary files.
+
+`shortcut_target_id` (workspace-mcp 2.4.0) - the ID of an existing file or folder; creates a shortcut named `file_name` in `folder_id` that points to it, so the item shows up in a second folder without being copied. Not combinable with a content source, and `mime_type` may be omitted.
 
 ### copy_drive_file
 
@@ -828,7 +848,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@2.2.0 for Sheets. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.5.0 for Sheets. Pass `user_google_email` on every call.
 
 ### list_spreadsheets
 
@@ -848,11 +868,13 @@ Parameters: `spreadsheet_id`, `range` (e.g. `"Sheet1!A1:C10"`), `user_google_ema
 
 Returns: 2D array of cell values. Every row in the range is returned (no silent truncation), but open-ended or oversized ranges are clamped to 1000 rows before the request - bound the volume with an explicit `range` when reading large sheets.
 
+From workspace-mcp 2.3.0 the output is tab-separated rows numbered with the sheet's own row numbers (not from 1), which cuts 14 to 21 percent of the tokens per read and keeps writes back on the right row. Anything that parsed the old shape needs the new one.
+
 ### modify_sheet_values
 
 Write cell values for a range. Supports overwrite and append modes.
 
-Parameters: `spreadsheet_id`, `range`, `values` (2D array), `user_google_email`, and a mode/option to control overwrite vs. append.
+Parameters: `spreadsheet_id`, `range`, `values` (2D array), `user_google_email`, and a mode/option to control overwrite vs. append. From workspace-mcp 2.4.1, `source_range` (an A1 range in the same spreadsheet, other tabs included) copies that range into the target the way the Sheets UI does, formulas shifting and formatting coming along, and the target may be just the top-left cell; `paste_type` picks what is pasted (`PASTE_NORMAL` default, `PASTE_VALUES`, `PASTE_FORMAT`, `PASTE_NO_BORDERS`, `PASTE_FORMULA`, `PASTE_DATA_VALIDATION`, `PASTE_CONDITIONAL_FORMATTING`). Use `source_range` instead of `values`, `chips` or `clear_values`.
 
 ### format_sheet_range
 
@@ -870,9 +892,9 @@ Parameters: `title`, optional `sheet_names` (list of tab names), optional `folde
 
 ### create_sheet
 
-Add a new sheet (tab) to an existing spreadsheet.
+Add a new sheet (tab) to an existing spreadsheet, or copy a tab into another spreadsheet.
 
-Parameters: `spreadsheet_id`, `title`, `user_google_email`.
+Parameters: `spreadsheet_id`, `title`, `user_google_email`, optional `destination_spreadsheet_id` (workspace-mcp 2.4.0) - copies the tab, with its formatting and formulas, into that spreadsheet, then renames and positions it.
 
 ### manage_sheet_tab
 
@@ -999,19 +1021,31 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@2.2.0 for Slides. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.5.0 for Slides. Pass `user_google_email` on every call.
 
 ### create_presentation
 
 Create a new presentation (new file in Drive).
 
-Parameters: `title`, `user_google_email`. No folder parameter on the pinned 2.2.0 - it lands in My Drive root; move it with `update_drive_file`.
+Parameters: `title`, `user_google_email`. No folder parameter on the pinned 2.5.0 - it lands in My Drive root; move it with `update_drive_file`.
 
 ### get_presentation
 
-Read a presentation's full structure - all pages (slides), all elements, layouts.
+Read a deck by `action`. Rebuilt in workspace-mcp 2.5.0 - the `include_speaker_notes`, `include_geometry` and `include_styles` flags and the separate `get_page` tool are gone; a bare call still works because `action` defaults to `"deck"`.
 
-Parameters: `presentation_id`, `user_google_email`, optional `include_speaker_notes` (returns each slide's notes text plus the editable notes shape ID, so notes can be replaced or appended through `batch_update_presentation`).
+Parameters:
+
+- `presentation_id`, `user_google_email`
+
+- `action` - `"deck"` (default) lists the title, URL, revision and, per slide, its ID, title, layout, element counts and notes length, then the layouts with their placeholders, 100 slides per call (continue with `offset`); `"page"` returns every element on one slide in z-order with all text, table cells, image sources and speaker notes, no geometry or styling (start here for content); `"markup"` returns one slide, or chosen elements, as compact JSON with boxes in points, text runs and a shared styles table; `"layouts"` lists every layout grouped by master (continue with `after`)
+
+- `page_id` - the slide object ID from `"deck"`; required for `"page"` and `"markup"`
+
+- `offset` - for `"deck"`, the first slide index to list, from the note at the end of the previous call
+
+- `after` - for `"layouts"`, a slide ID or `"start"`, listing only the layouts a slide inserted there can use
+
+- `targets` - for `"markup"`, element IDs to return instead of the whole slide, plus `"notes"` for the speaker notes (the notes shape ID lets notes be replaced or appended through `batch_update_presentation`)
 
 ### batch_update_presentation
 
@@ -1024,10 +1058,6 @@ Parameters:
 - `requests[]` - list of update request objects. Each follows the Google Slides API batchUpdate shape (e.g. `{"createSlide": {...}}`, `{"insertText": {...}}`, `{"deleteObject": {...}}`).
 
 - `user_google_email`
-
-### get_page
-
-Read a single slide (page) by ID.
 
 ### render_page_to_image
 
@@ -1053,7 +1083,7 @@ Parameters:
 
 ### Read existing deck and summarise
 
-1. `get_presentation` to fetch all slides.
+1. `get_presentation` with the default `"deck"` action to list the slides, then `action: "page"` with each `page_id` whose text you need.
 
 2. Walk the pages array; for each page surface its title and key text content as a structured summary.
 
@@ -1112,7 +1142,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@2.2.0 for Contacts. Pass `user_google_email` on every call. Mutations (create/update/delete) flow through `manage_contact` or `manage_contacts_batch` with action verbs.
+The following tools are exposed by workspace-mcp@2.5.0 for Contacts. Pass `user_google_email` on every call. Mutations (create/update/delete) flow through `manage_contact` or `manage_contacts_batch` with action verbs.
 
 ### list_contacts
 
@@ -1235,7 +1265,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@2.2.0 for Tasks. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.5.0 for Tasks. Pass `user_google_email` on every call.
 
 ### list_task_lists
 
@@ -1380,7 +1410,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@2.2.0 for Forms. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.5.0 for Forms. Pass `user_google_email` on every call.
 
 ### create_form
 
@@ -1509,13 +1539,13 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@2.2.0 for Google Chat. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.5.0 for Google Chat. Pass `user_google_email` on every call.
 
 ### list_spaces
 
 List Chat spaces the user is a member of.
 
-Parameters: `user_google_email`, optional pagination.
+Parameters: `user_google_email`, optional pagination, optional `space_id` (workspace-mcp 2.4.2) - pass a space (`spaces/X` or the bare ID) to list its members instead of spaces: people, apps and groups with their role and invite state.
 
 ### get_messages
 
@@ -1523,9 +1553,9 @@ Get messages from a space.
 
 Parameters:
 
-- `space_id` - format `spaces/ABCDEF`
+- `space_id` - `spaces/ABCDEF`, or the bare ID from workspace-mcp 2.4.2 (malformed IDs are rejected with a clear error)
 
-- Optional time/cursor filters
+- Optional time/cursor filters; `page_token` (workspace-mcp 2.4.0) continues from a previous response's next token with every other argument unchanged, so long spaces can be read past the first page
 
 - `user_google_email`
 

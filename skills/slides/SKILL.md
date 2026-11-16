@@ -23,19 +23,31 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@2.2.0 for Slides. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.5.0 for Slides. Pass `user_google_email` on every call.
 
 ### create_presentation
 
 Create a new presentation (new file in Drive).
 
-Parameters: `title`, `user_google_email`. No folder parameter on the pinned 2.2.0 - it lands in My Drive root; move it with `update_drive_file`.
+Parameters: `title`, `user_google_email`. No folder parameter on the pinned 2.5.0 - it lands in My Drive root; move it with `update_drive_file`.
 
 ### get_presentation
 
-Read a presentation's full structure - all pages (slides), all elements, layouts.
+Read a deck by `action`. Rebuilt in workspace-mcp 2.5.0 - the `include_speaker_notes`, `include_geometry` and `include_styles` flags and the separate `get_page` tool are gone; a bare call still works because `action` defaults to `"deck"`.
 
-Parameters: `presentation_id`, `user_google_email`, optional `include_speaker_notes` (returns each slide's notes text plus the editable notes shape ID, so notes can be replaced or appended through `batch_update_presentation`).
+Parameters:
+
+- `presentation_id`, `user_google_email`
+
+- `action` - `"deck"` (default) lists the title, URL, revision and, per slide, its ID, title, layout, element counts and notes length, then the layouts with their placeholders, 100 slides per call (continue with `offset`); `"page"` returns every element on one slide in z-order with all text, table cells, image sources and speaker notes, no geometry or styling (start here for content); `"markup"` returns one slide, or chosen elements, as compact JSON with boxes in points, text runs and a shared styles table; `"layouts"` lists every layout grouped by master (continue with `after`)
+
+- `page_id` - the slide object ID from `"deck"`; required for `"page"` and `"markup"`
+
+- `offset` - for `"deck"`, the first slide index to list, from the note at the end of the previous call
+
+- `after` - for `"layouts"`, a slide ID or `"start"`, listing only the layouts a slide inserted there can use
+
+- `targets` - for `"markup"`, element IDs to return instead of the whole slide, plus `"notes"` for the speaker notes (the notes shape ID lets notes be replaced or appended through `batch_update_presentation`)
 
 ### batch_update_presentation
 
@@ -48,10 +60,6 @@ Parameters:
 - `requests[]` - list of update request objects. Each follows the Google Slides API batchUpdate shape (e.g. `{"createSlide": {...}}`, `{"insertText": {...}}`, `{"deleteObject": {...}}`).
 
 - `user_google_email`
-
-### get_page
-
-Read a single slide (page) by ID.
 
 ### render_page_to_image
 
@@ -77,7 +85,7 @@ Parameters:
 
 ### Read existing deck and summarise
 
-1. `get_presentation` to fetch all slides.
+1. `get_presentation` with the default `"deck"` action to list the slides, then `action: "page"` with each `page_id` whose text you need.
 
 2. Walk the pages array; for each page surface its title and key text content as a structured summary.
 
