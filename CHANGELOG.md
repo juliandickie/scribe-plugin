@@ -2,9 +2,9 @@
 
 Releases before 1.3.3 are described on the [GitHub releases page](https://github.com/juliandickie/scribe-plugin/releases).
 
-## Unreleased - branch bump-workspace-mcp-2.5.0 (2026-11-16)
+## 1.3.4 - 2026-11-17
 
-Bumps the `workspace-mcp` pin from 2.2.0 to 2.5.0. Reaches installed copies only when a release bumps the plugin version.
+Ships the `workspace-mcp` 2.5.0 pin to installed copies. The pin merged to main in PR #9 on 2026-11-17 at plugin version 1.3.3.
 
 ### Upstream - workspace-mcp 2.2.0 to 2.5.0
 
