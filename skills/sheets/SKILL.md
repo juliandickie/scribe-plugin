@@ -25,7 +25,7 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@2.2.0 for Sheets. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.5.0 for Sheets. Pass `user_google_email` on every call.
 
 ### list_spreadsheets
 
@@ -45,11 +45,13 @@ Parameters: `spreadsheet_id`, `range` (e.g. `"Sheet1!A1:C10"`), `user_google_ema
 
 Returns: 2D array of cell values. Every row in the range is returned (no silent truncation), but open-ended or oversized ranges are clamped to 1000 rows before the request - bound the volume with an explicit `range` when reading large sheets.
 
+From workspace-mcp 2.3.0 the output is tab-separated rows numbered with the sheet's own row numbers (not from 1), which cuts 14 to 21 percent of the tokens per read and keeps writes back on the right row. Anything that parsed the old shape needs the new one.
+
 ### modify_sheet_values
 
 Write cell values for a range. Supports overwrite and append modes.
 
-Parameters: `spreadsheet_id`, `range`, `values` (2D array), `user_google_email`, and a mode/option to control overwrite vs. append.
+Parameters: `spreadsheet_id`, `range`, `values` (2D array), `user_google_email`, and a mode/option to control overwrite vs. append. From workspace-mcp 2.4.1, `source_range` (an A1 range in the same spreadsheet, other tabs included) copies that range into the target the way the Sheets UI does, formulas shifting and formatting coming along, and the target may be just the top-left cell; `paste_type` picks what is pasted (`PASTE_NORMAL` default, `PASTE_VALUES`, `PASTE_FORMAT`, `PASTE_NO_BORDERS`, `PASTE_FORMULA`, `PASTE_DATA_VALIDATION`, `PASTE_CONDITIONAL_FORMATTING`). Use `source_range` instead of `values`, `chips` or `clear_values`.
 
 ### format_sheet_range
 
@@ -67,9 +69,9 @@ Parameters: `title`, optional `sheet_names` (list of tab names), optional `folde
 
 ### create_sheet
 
-Add a new sheet (tab) to an existing spreadsheet.
+Add a new sheet (tab) to an existing spreadsheet, or copy a tab into another spreadsheet.
 
-Parameters: `spreadsheet_id`, `title`, `user_google_email`.
+Parameters: `spreadsheet_id`, `title`, `user_google_email`, optional `destination_spreadsheet_id` (workspace-mcp 2.4.0) - copies the tab, with its formatting and formulas, into that spreadsheet, then renames and positions it.
 
 ### manage_sheet_tab
 

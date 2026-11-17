@@ -2,6 +2,19 @@
 
 Releases before 1.3.3 are described on the [GitHub releases page](https://github.com/juliandickie/scribe-plugin/releases).
 
+## Unreleased - branch bump-workspace-mcp-2.5.0 (2026-11-16)
+
+Bumps the `workspace-mcp` pin from 2.2.0 to 2.5.0. Reaches installed copies only when a release bumps the plugin version.
+
+### Upstream - workspace-mcp 2.2.0 to 2.5.0
+
+- Breaking - 2.4.0 removes `create_calendar`; call `manage_calendar` with `action: "create"` (same parameters, same output). 2.5.0 removes Slides `get_page` and the `include_speaker_notes`, `include_geometry` and `include_styles` flags; `get_presentation` now reads by `action` (`deck`, `page`, `markup`, `layouts`). 2.5.0 needs Python 3.11 or later.
+- 2.3.0 caps `get_drive_file_content` at 40,000 characters per call, with `offset` and `full_content` to read on, and returns `read_sheet_values` as tab-separated rows numbered by sheet row.
+- 2.4.1 gives plain-text Gmail drafts and sends with attachments an HTML alternative, so the hard wrap on send is fixed upstream, and Gmail web links open the right account in a multi-account browser.
+- Added - `manage_calendar` sharing actions, `heading` reads on the Docs content tools, `shortcut_target_id` on `create_drive_file`, `destination_spreadsheet_id` on `create_sheet`, `source_range` and `paste_type` on `modify_sheet_values`, `insert_date` smart chips in `batch_update_doc`, Chat member listing and paging, Gmail body paging and link listing, `this_and_following` on `manage_event`.
+- OAuth scopes are unchanged from 2.2.0, so no re-consent.
+- The calendar, slides, drive, docs, sheets, chat and gmail skills and `docs/services.md` are updated for the renamed tools and new parameters.
+
 ## 1.3.3 - 2026-10-27
 
 This release ships the `workspace-mcp` 2.2.0 pin to installed copies. The pin merged to main in PR #6 at plugin version 1.3.2, and Claude Code only updates an installed plugin when its version changes, so 1.3.2 installs kept running 1.26.1. Nothing else changes in the plugin.

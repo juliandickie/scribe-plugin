@@ -61,6 +61,8 @@ Parameters:
 
 - `send_updates` - `"all"` (default), `"externalOnly"`, or `"none"` to control notification emails
 
+- `this_and_following` - on `update` of one instance of a recurring event, applies the change to that instance and every later one (the original series ends before it and a new series starts there); earlier instances are kept. Default false. Added in workspace-mcp 2.5.0
+
 - `calendar_id` (defaults to `"primary"`)
 
 - `user_google_email`
@@ -89,13 +91,19 @@ Parameters:
 
 - `user_google_email`
 
-### create_calendar
+### manage_calendar
 
-Create a new calendar.
+Create a secondary calendar or manage who a calendar is shared with. Replaced `create_calendar` in workspace-mcp 2.4.0 - `manage_calendar` with `action: "create"` takes the same `summary` and `description` and returns the same output.
 
 Parameters:
 
-- `summary`, `description`
+- `action` - `"create"` (uses `summary`, `description`, `timezone`), `"list_sharing"` (uses `calendar_id`, `page_token`), `"share"` (uses `calendar_id`, `role`, `scope_type`, `scope_value`, `send_notifications`), `"update_sharing"` (uses `calendar_id`, `rule_id`, `role`, `send_notifications`) or `"unshare"` (uses `calendar_id`, `rule_id`)
+
+- `role` - `"freeBusyReader"`, `"reader"`, `"writerWithoutPrivateAccess"`, `"writer"`, `"owner"` or `"none"`
+
+- `scope_type` - `"user"` (default), `"group"`, `"domain"` or `"default"` (public); `scope_value` is the email address or domain name
+
+- `send_notifications` - email the grantee on share and update_sharing, default true
 
 - `user_google_email`
 

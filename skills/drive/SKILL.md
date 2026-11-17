@@ -51,7 +51,9 @@ Convenience tool to list Docs in a folder.
 
 ### get_drive_file_content
 
-Read file content for supported types.
+Read file content for supported types (native Docs, Sheets and Slides as text or CSV, Office files, PDFs, images). From workspace-mcp 2.3.0 a call returns at most 40,000 characters and ends with the `offset` to continue from; pass `offset` to read on, or `full_content: true` to get everything from the offset in one call. Fetched text is cached for 10 minutes, so follow-up pages skip the download.
+
+Parameters: `user_google_email`, `user_google_email`, optional `offset`, `full_content`.
 
 ### get_drive_file_download_url
 
@@ -82,6 +84,8 @@ Parameters:
 ### create_drive_file
 
 Create a Drive file from content. Accepts inline text content, a `fileUrl` reference, or inline binary via `base64_content` (with optional `base64_sha256` integrity check and `content_mime_type`) - no separate upload step needed for binary files.
+
+`shortcut_target_id` (workspace-mcp 2.4.0) - the ID of an existing file or folder; creates a shortcut named `file_name` in `folder_id` that points to it, so the item shows up in a second folder without being copied. Not combinable with a content source, and `mime_type` may be omitted.
 
 ### copy_drive_file
 

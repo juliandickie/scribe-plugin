@@ -29,15 +29,15 @@ The following tools are exposed by workspace-mcp for Docs. Pass `user_google_ema
 
 ### get_doc_content
 
-Read full doc text.
+Read full doc text, or one section of it.
 
-Parameters: `document_id`, `user_google_email`.
+Parameters: `document_id`, `user_google_email`, optional `heading` and `heading_level` (workspace-mcp 2.4.0) - pass the text of a body heading (case-insensitive, it must match exactly one; `heading_level` 1 to 6 narrows the match) to get that heading and everything under it up to the next heading of equal or shallower level. Native Google Docs only; `tab_id` is required when the doc has several tabs.
 
 ### get_doc_as_markdown
 
-Read doc as markdown.
+Read doc as markdown, or one section of it.
 
-Parameters: `document_id`, `user_google_email`.
+Parameters: `document_id`, `user_google_email`, optional `heading` and `heading_level` as on `get_doc_content`.
 
 ### inspect_doc_structure
 
@@ -104,6 +104,8 @@ Like `create_doc`, the imported Doc arrives with a single tab titled "Tab 1". Re
 Apply multiple operations in one atomic call.
 
 Parameters: `document_id`, `requests[]`, `user_google_email`.
+
+`insert_date` (workspace-mcp 2.4.2) inserts a date smart chip, with an optional date or time format and timezone; placement works like `insert_person`. Each `find_replace` now reports `Replaced N occurrence(s)`, including 0 when nothing matched.
 
 ### find_and_replace_doc
 

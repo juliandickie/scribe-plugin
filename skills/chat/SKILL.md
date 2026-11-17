@@ -25,13 +25,13 @@ Use this skill when the user's request involves -
 
 ## MCP tool reference
 
-The following tools are exposed by workspace-mcp@2.2.0 for Google Chat. Pass `user_google_email` on every call.
+The following tools are exposed by workspace-mcp@2.5.0 for Google Chat. Pass `user_google_email` on every call.
 
 ### list_spaces
 
 List Chat spaces the user is a member of.
 
-Parameters: `user_google_email`, optional pagination.
+Parameters: `user_google_email`, optional pagination, optional `space_id` (workspace-mcp 2.4.2) - pass a space (`spaces/X` or the bare ID) to list its members instead of spaces: people, apps and groups with their role and invite state.
 
 ### get_messages
 
@@ -39,9 +39,9 @@ Get messages from a space.
 
 Parameters:
 
-- `space_id` - format `spaces/ABCDEF`
+- `space_id` - `spaces/ABCDEF`, or the bare ID from workspace-mcp 2.4.2 (malformed IDs are rejected with a clear error)
 
-- Optional time/cursor filters
+- Optional time/cursor filters; `page_token` (workspace-mcp 2.4.0) continues from a previous response's next token with every other argument unchanged, so long spaces can be read past the first page
 
 - `user_google_email`
 
